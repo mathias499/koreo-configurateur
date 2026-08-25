@@ -185,12 +185,30 @@ function WizardScreen({ client, project, onBack, onDone }) {
 }
 
 // ─────────────────────────────────────────────────────────
+// Écran 0 : accueil KORÉO
+// ─────────────────────────────────────────────────────────
+function Home({ onStart }) {
+  return (
+    <div style={styles.homeScreen}>
+      <div style={styles.homeCenter}>
+        <div style={styles.homeLogo}>KORÉO</div>
+        <div style={styles.homeTitle}>Configurateur découverte</div>
+        <div style={styles.homeSub}>Réalisez votre découverte chantier en présence du client, façade par façade.</div>
+      </div>
+      <button onClick={onStart} style={styles.homeBtn}>Commencer</button>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────
 // App
 // ─────────────────────────────────────────────────────────
 export default function App() {
+  const [started, setStarted] = useState(false);
   const [client, setClient] = useState(null);
   const [project, setProject] = useState(null);
 
+  if (!started) return <Home onStart={() => setStarted(true)} />;
   if (!client) return <ClientSearch onSelect={setClient} />;
   if (!project) return <ProjectSelect client={client} onBack={() => setClient(null)} onSelect={setProject} />;
   return (
@@ -198,13 +216,19 @@ export default function App() {
       client={client}
       project={project}
       onBack={() => setProject(null)}
-      onDone={() => { setClient(null); setProject(null); }}
+      onDone={() => { setStarted(false); setClient(null); setProject(null); }}
     />
   );
 }
 
 const styles = {
-  screen: { maxWidth: 480, margin: "0 auto", padding: "40px 20px", fontFamily: "'IBM Plex Sans', sans-serif" },
+  homeScreen: { minHeight: "100vh", display: "flex", flexDirection: "column", justifyContent: "space-between", alignItems: "center", background: "#043C35", padding: "40px 24px", boxSizing: "border-box", fontFamily: "'IBM Plex Sans', sans-serif" },
+  homeCenter: { flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", maxWidth: 380 },
+  homeLogo: { fontFamily: "'Oswald', sans-serif", fontWeight: 700, fontSize: 34, letterSpacing: 4, color: "#fff" },
+  homeTitle: { fontSize: 18, fontWeight: 600, color: "#F2E9DC", marginTop: 14 },
+  homeSub: { fontSize: 14, color: "#B9C9C2", marginTop: 10, lineHeight: 1.5 },
+  homeBtn: { width: "100%", maxWidth: 380, padding: "16px", fontSize: 16, fontWeight: 700, color: "#043C35", background: "#F2A900", border: "none", borderRadius: 8, cursor: "pointer" },
+  screen: { maxWidth: 480, margin: "0 auto", padding: "40px 20px", fontFamily: "'IBM Plex Sans', sans-serif", minHeight: "100vh", display: "flex", flexDirection: "column", justifyContent: "center", boxSizing: "border-box" },
   logo: { fontFamily: "'Oswald', sans-serif", fontWeight: 700, fontSize: 14, letterSpacing: 2, color: "#0B5E43" },
   title: { fontSize: 22, fontWeight: 700, marginTop: 6, marginBottom: 4 },
   sub: { fontSize: 13, color: "#6b7280", marginBottom: 18 },
