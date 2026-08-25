@@ -101,68 +101,75 @@ function WizardScreen({ client, project, onBack, onDone }) {
   const containerRef = useRef(null);
   const [status, setStatus] = useState("loading"); // loading | ready | error
   const [error, setError] = useState(null);
+  const [catalogue, setCatalogue] = useState(null);
 
+  // Étape 1 : charger le catalogue (ne touche pas au DOM du wizard)
   useEffect(() => {
     let cancelled = false;
-    (async () => {
-      try {
-        const snap = await get(ref(db, "catalogue"));
-        const catalogue = snap.exists() ? snap.val() : [];
+    get(ref(db, "catalogue"))
+      .then((snap) => {
         if (cancelled) return;
-        if (!Array.isArray(catalogue) || catalogue.length === 0) {
+        const cat = snap.exists() ? snap.val() : [];
+        if (!Array.isArray(cat) || cat.length === 0) {
           setError("Le catalogue produit est vide ou inaccessible.");
           setStatus("error");
           return;
         }
+        setCatalogue(cat);
         setStatus("ready");
-        mountWizardITE(containerRef.current, {
-          catalogue,
-          client,
-          onGenerate: async (payload) => {
-            // payload = { missingRefs, devisSections } fourni par le moteur
-            if (payload.missingRefs && payload.missingRefs.length) {
-              return { ok: false, missingRefs: payload.missingRefs };
-            }
-            try {
-              const snapCrm = await get(ref(db, "crm"));
-              const data = snapCrm.exists() ? snapCrm.val() : { clients: [] };
-              const clientsArr = normList(data.clients);
-              const idx = clientsArr.findIndex((c) => c.id === client.id);
-              if (idx === -1) return { ok: false, error: "Client introuvable (a-t-il été supprimé entre temps ?)" };
-
-              const numeroInit = "DEV-" + String(Date.now()).slice(-6);
-              const today = new Date();
-              const plus30 = new Date(Date.now() + 30 * 864e5);
-              const devis = {
-                id: "d" + Date.now() + Math.random().toString(36).slice(2, 6),
-                numero: numeroInit,
-                date: today.toISOString().slice(0, 10),
-                validite: plus30.toISOString().slice(0, 10),
-                sections: payload.devisSections,
-                remisePct: 0,
-                origine: "configurateur",
-                updatedAt: Date.now(),
-              };
-              const existingDevis = normList(clientsArr[idx].devis);
-              clientsArr[idx] = { ...clientsArr[idx], devis: [...existingDevis, devis] };
-
-              await set(ref(db, "crm"), { ...data, clients: clientsArr });
-              return { ok: true, devisNumero: numeroInit };
-            } catch (e) {
-              return { ok: false, error: String(e) };
-            }
-          },
-          onExit: onDone,
-        });
-      } catch (e) {
+      })
+      .catch((e) => {
         if (!cancelled) {
           setError(String(e));
           setStatus("error");
         }
-      }
-    })();
+      });
     return () => { cancelled = true; };
   }, [client, project]);
+
+  // Étape 2 : une fois status==='ready' ET le conteneur bien rendu à l'écran, on monte le wizard.
+  useEffect(() => {
+    if (status !== "ready" || !catalogue || !containerRef.current) return;
+    mountWizardITE(containerRef.current, {
+      catalogue,
+      client,
+      onGenerate: async (payload) => {
+          // payload = { missingRefs, devisSections } fourni par le moteur
+          if (payload.missingRefs && payload.missingRefs.length) {
+            return { ok: false, missingRefs: payload.missingRefs };
+          }
+          try {
+            const snapCrm = await get(ref(db, "crm"));
+            const data = snapCrm.exists() ? snapCrm.val() : { clients: [] };
+            const clientsArr = normList(data.clients);
+            const idx = clientsArr.findIndex((c) => c.id === client.id);
+            if (idx === -1) return { ok: false, error: "Client introuvable (a-t-il été supprimé entre temps ?)" };
+
+            const numeroInit = "DEV-" + String(Date.now()).slice(-6);
+            const today = new Date();
+            const plus30 = new Date(Date.now() + 30 * 864e5);
+            const devis = {
+              id: "d" + Date.now() + Math.random().toString(36).slice(2, 6),
+              numero: numeroInit,
+              date: today.toISOString().slice(0, 10),
+              validite: plus30.toISOString().slice(0, 10),
+              sections: payload.devisSections,
+              remisePct: 0,
+              origine: "configurateur",
+              updatedAt: Date.now(),
+            };
+            const existingDevis = normList(clientsArr[idx].devis);
+            clientsArr[idx] = { ...clientsArr[idx], devis: [...existingDevis, devis] };
+
+            await set(ref(db, "crm"), { ...data, clients: clientsArr });
+            return { ok: true, devisNumero: numeroInit };
+          } catch (e) {
+            return { ok: false, error: String(e) };
+          }
+      },
+      onExit: onDone,
+    });
+  }, [status, catalogue, client, onDone]);
 
   if (status === "loading") return <div style={styles.centerMsg}>Chargement du catalogue produit…</div>;
   if (status === "error") return (
