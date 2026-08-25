@@ -950,7 +950,7 @@ function renderQuestions(){
       ${total===0?`<div class="warnline">⚠️ Aucune fenêtre saisie dans les façades — vérifie que les largeurs ont bien été renseignées.</div>`:''}
       <div style="display:flex; gap:10px; margin-top:16px;">
         <button class="btn btn-ghost" onclick="qGoBack()">Précédent</button>
-        <button class="btn btn-primary" onclick="qAdvanceFrom(qCurrent)">Suivant →</button>
+        <button class="btn btn-primary" onclick="qAdvanceCurrent()">Suivant →</button>
       </div>
     `;
     return;
@@ -991,7 +991,7 @@ function renderQuestions(){
 
       <div style="margin-top:16px; display:flex; gap:10px;">
         <button class="btn btn-ghost" onclick="qGoBack()">Précédent</button>
-        <button class="btn btn-primary" onclick="qAdvanceFrom(qCurrent)" ${(!state.q.facadeCouleur || (state.q.facadeCouleurBicolore && !state.q.facadeCouleur2))?'disabled':''}>Suivant →</button>
+        <button class="btn btn-primary" onclick="qAdvanceCurrent()" ${(!state.q.facadeCouleur || (state.q.facadeCouleurBicolore && !state.q.facadeCouleur2))?'disabled':''}>Suivant →</button>
       </div>
     `;
     document.getElementById('bicoloreNon').addEventListener('click', ()=>{ state.q.facadeCouleurBicolore=false; state.q.facadeCouleur2=null; render(); });
@@ -1027,7 +1027,7 @@ function renderQuestions(){
       </div>
       <div style="display:flex; gap:10px; margin-top:16px;">
         <button class="btn btn-ghost" onclick="qGoBack()">Précédent</button>
-        <button class="btn btn-primary" onclick="qAdvanceFrom(qCurrent)" ${!state.q.finitionType?'disabled':''}>Suivant →</button>
+        <button class="btn btn-primary" onclick="qAdvanceCurrent()" ${!state.q.finitionType?'disabled':''}>Suivant →</button>
       </div>
     `;
     app.querySelectorAll('[data-id]').forEach(tile=>{
@@ -1048,6 +1048,8 @@ function renderQuestions(){
   window.facRecapBack = facRecapBack;
   window.goStep = goStep;
   window.qAdvanceFrom = qAdvanceFrom;
+  window.qAdvanceCurrent = function(){ qAdvanceFrom(qCurrent); };
+  window.state = state;
   window.qGoBack = qGoBack;
   window.render = render;
   window.setDemandeur = setDemandeur;
