@@ -181,7 +181,7 @@ function WizardScreen({ client, project, onBack, onDone }) {
     </div>
   );
 
-  return <div ref={containerRef} style={{ height: "100vh", overflow: "hidden" }} />;
+  return <div ref={containerRef} style={{ overflow: "hidden" }} />;
 }
 
 // ─────────────────────────────────────────────────────────
@@ -222,13 +222,13 @@ export default function App() {
 }
 
 const styles = {
-  homeScreen: { minHeight: "100vh", display: "flex", flexDirection: "column", justifyContent: "space-between", alignItems: "center", background: "#043C35", padding: "40px 24px", boxSizing: "border-box", fontFamily: "'IBM Plex Sans', sans-serif" },
+  homeScreen: { minHeight: "100dvh", display: "flex", flexDirection: "column", justifyContent: "space-between", alignItems: "center", background: "#043C35", padding: "calc(40px + env(safe-area-inset-top)) 24px calc(40px + env(safe-area-inset-bottom))", boxSizing: "border-box", fontFamily: "'IBM Plex Sans', sans-serif" },
   homeCenter: { flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", maxWidth: 380 },
   homeLogo: { fontFamily: "'Oswald', sans-serif", fontWeight: 700, fontSize: 34, letterSpacing: 4, color: "#fff" },
   homeTitle: { fontSize: 18, fontWeight: 600, color: "#F2E9DC", marginTop: 14 },
   homeSub: { fontSize: 14, color: "#B9C9C2", marginTop: 10, lineHeight: 1.5 },
   homeBtn: { width: "100%", maxWidth: 380, padding: "16px", fontSize: 16, fontWeight: 700, color: "#043C35", background: "#F2A900", border: "none", borderRadius: 8, cursor: "pointer" },
-  screen: { maxWidth: 480, margin: "0 auto", padding: "40px 20px", fontFamily: "'IBM Plex Sans', sans-serif", minHeight: "100vh", display: "flex", flexDirection: "column", justifyContent: "center", boxSizing: "border-box" },
+  screen: { maxWidth: 480, margin: "0 auto", padding: "40px 20px", fontFamily: "'IBM Plex Sans', sans-serif", minHeight: "100dvh", display: "flex", flexDirection: "column", justifyContent: "center", boxSizing: "border-box" },
   logo: { fontFamily: "'Oswald', sans-serif", fontWeight: 700, fontSize: 14, letterSpacing: 2, color: "#0B5E43" },
   title: { fontSize: 22, fontWeight: 700, marginTop: 6, marginBottom: 4 },
   sub: { fontSize: 13, color: "#6b7280", marginBottom: 18 },
@@ -237,5 +237,5 @@ const styles = {
   clientBtn: { display: "block", width: "100%", textAlign: "left", padding: "12px 14px", marginBottom: 8, background: "#fff", border: "1.5px solid #E1DFD9", borderRadius: 6, cursor: "pointer" },
   backBtn: { background: "none", border: "none", color: "#0B5E43", fontWeight: 700, fontSize: 13, cursor: "pointer", padding: 0, marginBottom: 18 },
   projectBtn: { display: "block", width: "100%", textAlign: "left", padding: "16px", marginBottom: 10, background: "#0B5E43", color: "#fff", border: "none", borderRadius: 8, fontSize: 15, fontWeight: 700, cursor: "pointer" },
-  centerMsg: { minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", fontFamily: "'IBM Plex Sans', sans-serif", padding: 20, textAlign: "center" },
+  centerMsg: { minHeight: "100dvh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", fontFamily: "'IBM Plex Sans', sans-serif", padding: 20, textAlign: "center" },
 };

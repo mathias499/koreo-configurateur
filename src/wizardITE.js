@@ -13,12 +13,12 @@ const CSS = `
   .wizardRoot{
     background:var(--concrete); color:var(--ink);
     font-family:'IBM Plex Sans',sans-serif; -webkit-font-smoothing:antialiased;
-    display:flex; flex-direction:column; height:100vh; overflow:hidden;
+    display:flex; flex-direction:column; height:100vh; height:100dvh; overflow:hidden;
   }
   .mono{font-family:'IBM Plex Mono',monospace;}
   .disp{font-family:'Oswald',sans-serif; text-transform:uppercase; letter-spacing:.03em;}
 
-  header{ background:var(--ink); color:#fff; flex-shrink:0; padding:12px 16px 10px; border-bottom:4px solid var(--amber); }
+  header{ background:var(--ink); color:#fff; flex-shrink:0; padding:calc(12px + env(safe-area-inset-top)) 16px 10px; border-bottom:4px solid var(--amber); }
   .headrow{display:flex; align-items:center; gap:10px;}
   #backBtn{ background:none; border:1px solid #3A3F45; color:#B9BEC4; width:32px; height:32px; border-radius:2px; cursor:pointer; font-size:16px; flex-shrink:0; visibility:hidden;}
   #backBtn.show{visibility:visible;}
@@ -67,7 +67,7 @@ const CSS = `
   .recap-group h4{ font-family:'Oswald',sans-serif; text-transform:uppercase; font-size:13px; letter-spacing:.03em; color:var(--amber-deep); margin:0 0 6px; border-bottom:2px solid var(--ink); padding-bottom:4px;}
   .recap-total{ display:flex; justify-content:space-between; font-size:18px; font-weight:700; padding-top:12px; margin-top:6px; border-top:3px solid var(--ink);}
 
-  footer{ flex-shrink:0; background:var(--panel); border-top:1.5px solid var(--line); padding:12px 18px; display:flex; gap:10px; justify-content:flex-end;}
+  footer{ flex-shrink:0; background:var(--panel); border-top:1.5px solid var(--line); padding:12px 18px calc(12px + env(safe-area-inset-bottom)); display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap;}
   .btn{ padding:12px 22px; border-radius:3px; font-size:14px; font-weight:700; cursor:pointer; border:1.5px solid var(--ink); }
   .btn-primary{ background:var(--ink); color:#fff;}
   .btn-ghost{ background:none; color:var(--ink);}
