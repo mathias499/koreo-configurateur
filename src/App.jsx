@@ -181,7 +181,7 @@ function WizardScreen({ client, project, onBack, onDone }) {
     </div>
   );
 
-  return <div ref={containerRef} style={{ minHeight: "100vh" }} />;
+  return <div ref={containerRef} style={{ height: "100vh", overflow: "hidden" }} />;
 }
 
 // ─────────────────────────────────────────────────────────

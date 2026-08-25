@@ -10,8 +10,7 @@ const CSS = `
     --alert:#C8402A; --alert-bg:#FBEAE6; --ok:#2E7D4F; --ok-bg:#E8F3EC;
   }
   *{box-sizing:border-box;}
-  html,body{margin:0;padding:0;height:100%;}
-  body{
+  .wizardRoot{
     background:var(--concrete); color:var(--ink);
     font-family:'IBM Plex Sans',sans-serif; -webkit-font-smoothing:antialiased;
     display:flex; flex-direction:column; height:100vh; overflow:hidden;
@@ -87,6 +86,7 @@ export function mountWizardITE(container, opts) {
   injectCss();
   const { catalogue, client, onGenerate, onExit } = opts;
 
+  container.classList.add('wizardRoot');
   container.innerHTML = `
     <header>
       <div class="headrow">
