@@ -109,7 +109,7 @@ const state = {
   echafs: [],                // [{id,type:'classique'|'voirie'|'copro'|'voisin', m2}]
   _echafType: null, _echafM2:'', _echafSubStep:'type',
   facades: [],
-  _facCurrent: null, _facFenIndex: 0, _facSubStep: 'nom',
+  _facCurrent: null, _facFenIndex: 0, _facPorteIndex: 0, _facSubStep: 'nom',
 };
 let step = 0;
 const STEPS = ['demandeur','facades','forme','echaf','questions','recap'];
@@ -117,17 +117,17 @@ const STEPS = ['demandeur','facades','forme','echaf','questions','recap'];
 function uid(){ return 'f'+Math.random().toString(36).slice(2,8); }
 function wid(){ return 'w'+Math.random().toString(36).slice(2,8); }
 
-function newFacadeObj(){ return { id:uid(), nom:'', longueur:'', hauteur:'', fenetres:[] }; }
+function newFacadeObj(){ return { id:uid(), nom:'', pignon:false, longueur:'', hauteur:'', fenetres:[], portes:[] }; }
 
 function facRecapBack(){
   const f = state._facCurrent;
-  if(f.fenetres.length===0){ state._facSubStep='nbFenetres'; }
-  else { state._facFenIndex = f.fenetres.length-1; state._facSubStep='fenHauteur'; }
+  if(f.portes.length===0){ state._facSubStep='nbPortes'; }
+  else { state._facPorteIndex = f.portes.length-1; state._facSubStep='porteHauteur'; }
   render();
 }
 function facAgain(yes){
   state.facades.push(state._facCurrent);
-  if(yes){ state._facCurrent = newFacadeObj(); state._facFenIndex=0; state._facSubStep='nom'; render(); }
+  if(yes){ state._facCurrent = newFacadeObj(); state._facFenIndex=0; state._facPorteIndex=0; state._facSubStep='nom'; render(); }
   else { nextStep(); }
 }
 
@@ -136,19 +136,34 @@ function numF(v){ return parseFloat(String(v||'').replace(',','.'))||0; }
 function calcFacade(f){
   const hFacade = numF(f.hauteur);
   const lFacade = numF(f.longueur);
-  const surfaceBrute = lFacade*hFacade;
-  let baguettesFenetres=0, gouttesEau=0, surfaceFenetres=0;
+  const surfaceBrute = f.pignon ? (lFacade*hFacade)/2 : lFacade*hFacade;
+
+  let baguettesFenetres=0, gouttesEauFenetres=0, surfaceFenetres=0;
   f.fenetres.forEach(w=>{
     const wh = numF(w.hauteur);
     const wl = numF(w.largeur);
     baguettesFenetres += wh*2;
-    gouttesEau += wl;
+    gouttesEauFenetres += wl;
     surfaceFenetres += wh*wl;
   });
-  const surfaceNette = Math.max(0, surfaceBrute - surfaceFenetres);
-  const baguettesTotal = hFacade + baguettesFenetres;
-  const repriseTableaux = gouttesEau + baguettesFenetres;
-  return { surfaceBrute, surfaceFenetres, surfaceNette, baguettesTotal, baguettesFenetres, gouttesEau, repriseTableaux };
+
+  // Portes : mêmes règles que les fenêtres pour baguettes d'angle et gouttes d'eau.
+  // Seuls les appuis de fenêtre (auto, calcAppuisAuto) ne concernent que les fenêtres.
+  let baguettesPortes=0, gouttesEauPortes=0, surfacePortes=0;
+  (f.portes||[]).forEach(p=>{
+    const ph = numF(p.hauteur);
+    const pl = numF(p.largeur);
+    baguettesPortes += ph*2;
+    gouttesEauPortes += pl;
+    surfacePortes += ph*pl;
+  });
+
+  const gouttesEau = gouttesEauFenetres + gouttesEauPortes;
+  const surfaceOuvertures = surfaceFenetres + surfacePortes;
+  const surfaceNette = Math.max(0, surfaceBrute - surfaceOuvertures);
+  const baguettesTotal = hFacade + baguettesFenetres + baguettesPortes;
+  const repriseTableaux = gouttesEau + baguettesFenetres + baguettesPortes;
+  return { surfaceBrute, surfaceFenetres, surfacePortes, surfaceOuvertures, surfaceNette, baguettesTotal, baguettesFenetres, baguettesPortes, gouttesEau, repriseTableaux };
 }
 
 function totalSurfaceBruteFacades(){
@@ -168,7 +183,7 @@ function calcRailDepart(){
 }
 
 function goStep(i){ step=i; render(); }
-function nextStep(){ if(step<STEPS.length-1){ step++; if(STEPS[step]==='facades'){ state._facCurrent=newFacadeObj(); state._facFenIndex=0; state._facSubStep='nom'; } if(STEPS[step]==='echaf'){ state._echafType=null; state._echafM2=''; state._echafSubStep='type'; } if(STEPS[step]==='questions'){ qCurrent=0; qHistory=[]; } render(); } }
+function nextStep(){ if(step<STEPS.length-1){ step++; if(STEPS[step]==='facades'){ state._facCurrent=newFacadeObj(); state._facFenIndex=0; state._facPorteIndex=0; state._facSubStep='nom'; } if(STEPS[step]==='echaf'){ state._echafType=null; state._echafM2=''; state._echafSubStep='type'; } if(STEPS[step]==='questions'){ qCurrent=0; qHistory=[]; } render(); } }
 function prevStep(){ if(step>0){ step--; render(); } }
 function goBack(){ if(STEPS[step]==='questions' && qHistory.length>0){ qGoBack(); } else { prevStep(); } }
 
@@ -241,6 +256,7 @@ function render(){
         <div class="choices">
           ${Object.keys(ECHAF_LABELS).map(k=>`<button type="button" class="choice-btn wide" onclick="echafSetType('${k}')">${ECHAF_LABELS[k]}</button>`).join('')}
         </div>
+        <div style="margin-top:16px;"><button class="btn btn-ghost" onclick="${state.echafs.length>0 ? "state._echafSubStep='again'; render();" : "prevStep();"}">Précédent</button></div>
       `;
       return;
     }
@@ -277,6 +293,7 @@ function render(){
           <button type="button" class="choice-btn" onclick="echafAgain(false)">Non, continuer</button>
           <button type="button" class="choice-btn" onclick="echafAgain(true)">Oui, en ajouter un</button>
         </div>
+        <div style="margin-top:16px;"><button class="btn btn-ghost" onclick="state._echafSubStep='m2'; render();">Précédent</button></div>
       `;
       return;
     }
@@ -285,6 +302,7 @@ function render(){
   if(STEPS[step]==='facades'){
     const f = state._facCurrent;
     const already = state.facades.length ? `<div class="okline">✓ Façades déjà ajoutées : ${state.facades.map((x,i)=>(x.nom||'Façade '+(i+1))).join(' · ')}</div>` : '';
+    const facBackFromNom = state.facades.length>0 ? "state._facSubStep='again'; render();" : "prevStep();";
 
     if(state._facSubStep==='nom'){
       app.innerHTML = `
@@ -293,19 +311,37 @@ function render(){
         <div class="qsub">Ex: Sud-Ouest, Façade rue, Façade jardin...</div>
         ${already}
         <input class="finput" id="facInput" type="text" value="${f.nom}" placeholder="ex: Sud-Ouest"/>
-        <div style="display:flex; gap:10px; margin-top:16px;"><button class="btn btn-primary" id="facNext">Suivant</button></div>
+        <div style="display:flex; gap:10px; margin-top:16px;">
+          <button class="btn btn-ghost" onclick="${facBackFromNom}">Précédent</button>
+          <button class="btn btn-primary" id="facNext">Suivant</button>
+        </div>
       `;
       document.getElementById('facInput').focus();
-      document.getElementById('facNext').addEventListener('click', ()=>{ f.nom=document.getElementById('facInput').value; state._facSubStep='longueur'; render(); });
+      document.getElementById('facNext').addEventListener('click', ()=>{ f.nom=document.getElementById('facInput').value; state._facSubStep='pignon'; render(); });
+      return;
+    }
+    if(state._facSubStep==='pignon'){
+      app.innerHTML = `
+        <div class="eyebrow">Façade ${state.facades.length+1}${f.nom?' — '+f.nom:''}</div>
+        <div class="qtitle">Est-ce un pignon (partie triangulaire) ?</div>
+        <div class="qsub">Si oui, la surface sera calculée en triangle (longueur × hauteur ÷ 2) au lieu d'un rectangle.</div>
+        <div class="choices">
+          <button type="button" class="choice-btn" id="pignonNon">Non — façade classique</button>
+          <button type="button" class="choice-btn" id="pignonOui">Oui — pignon (triangle)</button>
+        </div>
+        <div style="margin-top:16px;"><button class="btn btn-ghost" onclick="state._facSubStep='nom'; render();">Précédent</button></div>
+      `;
+      document.getElementById('pignonNon').addEventListener('click', ()=>{ f.pignon=false; state._facSubStep='longueur'; render(); });
+      document.getElementById('pignonOui').addEventListener('click', ()=>{ f.pignon=true; state._facSubStep='longueur'; render(); });
       return;
     }
     if(state._facSubStep==='longueur'){
       app.innerHTML = `
-        <div class="eyebrow">Façade ${state.facades.length+1}${f.nom?' — '+f.nom:''}</div>
-        <div class="qtitle">Longueur de la façade ?</div>
+        <div class="eyebrow">Façade ${state.facades.length+1}${f.nom?' — '+f.nom:''}${f.pignon?' (pignon)':''}</div>
+        <div class="qtitle">Longueur ${f.pignon?'de la base du pignon':'de la façade'} ?</div>
         <input class="finput" id="facInput" type="text" inputmode="decimal" placeholder="ex: 5,20" value="${f.longueur}"/>
         <div style="display:flex; gap:10px; margin-top:16px;">
-          <button class="btn btn-ghost" onclick="state._facSubStep='nom'; render();">Précédent</button>
+          <button class="btn btn-ghost" onclick="state._facSubStep='pignon'; render();">Précédent</button>
           <button class="btn btn-primary" id="facNext">Suivant</button>
         </div>
       `;
@@ -315,8 +351,8 @@ function render(){
     }
     if(state._facSubStep==='hauteur'){
       app.innerHTML = `
-        <div class="eyebrow">Façade ${state.facades.length+1}${f.nom?' — '+f.nom:''}</div>
-        <div class="qtitle">Hauteur de la façade ?</div>
+        <div class="eyebrow">Façade ${state.facades.length+1}${f.nom?' — '+f.nom:''}${f.pignon?' (pignon)':''}</div>
+        <div class="qtitle">Hauteur ${f.pignon?'au faîtage du pignon':'de la façade'} ?</div>
         <input class="finput" id="facInput" type="text" inputmode="decimal" placeholder="ex: 2,50" value="${f.hauteur}"/>
         <div style="display:flex; gap:10px; margin-top:16px;">
           <button class="btn btn-ghost" onclick="state._facSubStep='longueur'; render();">Précédent</button>
@@ -328,11 +364,11 @@ function render(){
       return;
     }
     if(state._facSubStep==='nbFenetres'){
-      const surfaceBrute = numF(f.longueur)*numF(f.hauteur);
+      const surfaceBrute = f.pignon ? (numF(f.longueur)*numF(f.hauteur))/2 : numF(f.longueur)*numF(f.hauteur);
       app.innerHTML = `
         <div class="eyebrow">Façade ${state.facades.length+1}${f.nom?' — '+f.nom:''}</div>
         <div class="qtitle">Combien de fenêtres sur cette façade ?</div>
-        <div class="qsub">Surface façade brute = ${surfaceBrute.toFixed(1)} m²</div>
+        <div class="qsub">Surface façade brute${f.pignon?' (triangle)':''} = ${surfaceBrute.toFixed(1)} m². Ne compte pas les portes ici.</div>
         <input class="finput" id="facInput" type="number" value="${f.fenetres.length}" placeholder="0"/>
         <div style="display:flex; gap:10px; margin-top:16px;">
           <button class="btn btn-ghost" onclick="state._facSubStep='hauteur'; render();">Précédent</button>
@@ -344,7 +380,7 @@ function render(){
         const n = Math.max(0, parseInt(document.getElementById('facInput').value)||0);
         f.fenetres = Array.from({length:n}, (_,i)=> f.fenetres[i] || {id:wid(), largeur:'', hauteur:''});
         state._facFenIndex = 0;
-        state._facSubStep = n>0 ? 'fenLargeur' : 'recapFacade';
+        state._facSubStep = n>0 ? 'fenLargeur' : 'nbPortes';
         render();
       });
       return;
@@ -379,6 +415,62 @@ function render(){
       document.getElementById('facNext').addEventListener('click', ()=>{
         w.hauteur=document.getElementById('facInput').value;
         if(state._facFenIndex < f.fenetres.length-1){ state._facFenIndex++; state._facSubStep='fenLargeur'; }
+        else { state._facSubStep='nbPortes'; }
+        render();
+      });
+      return;
+    }
+    if(state._facSubStep==='nbPortes'){
+      app.innerHTML = `
+        <div class="eyebrow">Façade ${state.facades.length+1}${f.nom?' — '+f.nom:''}</div>
+        <div class="qtitle">Combien de portes sur cette façade ?</div>
+        <div class="qsub">Dissocié des fenêtres — les portes n'ont ni goutte d'eau ni appui de fenêtre.</div>
+        <input class="finput" id="facInput" type="number" value="${f.portes.length}" placeholder="0"/>
+        <div style="display:flex; gap:10px; margin-top:16px;">
+          <button class="btn btn-ghost" onclick="${f.fenetres.length>0 ? "state._facFenIndex="+(f.fenetres.length-1)+"; state._facSubStep='fenHauteur'; render();" : "state._facSubStep='nbFenetres'; render();"}">Précédent</button>
+          <button class="btn btn-primary" id="facNext">Suivant</button>
+        </div>
+      `;
+      document.getElementById('facInput').focus();
+      document.getElementById('facNext').addEventListener('click', ()=>{
+        const n = Math.max(0, parseInt(document.getElementById('facInput').value)||0);
+        f.portes = Array.from({length:n}, (_,i)=> f.portes[i] || {id:wid(), largeur:'', hauteur:''});
+        state._facPorteIndex = 0;
+        state._facSubStep = n>0 ? 'porteLargeur' : 'recapFacade';
+        render();
+      });
+      return;
+    }
+    if(state._facSubStep==='porteLargeur'){
+      const p = f.portes[state._facPorteIndex];
+      app.innerHTML = `
+        <div class="eyebrow">Façade ${state.facades.length+1} — Porte ${state._facPorteIndex+1}/${f.portes.length}</div>
+        <div class="qtitle">Largeur de cette porte ?</div>
+        <input class="finput" id="facInput" type="text" inputmode="decimal" placeholder="ex: 0,90" value="${p.largeur}"/>
+        <div style="display:flex; gap:10px; margin-top:16px;">
+          <button class="btn btn-ghost" onclick="state._facSubStep='nbPortes'; render();">Précédent</button>
+          <button class="btn btn-primary" id="facNext">Suivant</button>
+        </div>
+      `;
+      document.getElementById('facInput').focus();
+      document.getElementById('facNext').addEventListener('click', ()=>{ p.largeur=document.getElementById('facInput').value; state._facSubStep='porteHauteur'; render(); });
+      return;
+    }
+    if(state._facSubStep==='porteHauteur'){
+      const p = f.portes[state._facPorteIndex];
+      app.innerHTML = `
+        <div class="eyebrow">Façade ${state.facades.length+1} — Porte ${state._facPorteIndex+1}/${f.portes.length}</div>
+        <div class="qtitle">Hauteur de cette porte ?</div>
+        <input class="finput" id="facInput" type="text" inputmode="decimal" placeholder="ex: 2,10" value="${p.hauteur}"/>
+        <div style="display:flex; gap:10px; margin-top:16px;">
+          <button class="btn btn-ghost" onclick="state._facSubStep='porteLargeur'; render();">Précédent</button>
+          <button class="btn btn-primary" id="facNext">Suivant</button>
+        </div>
+      `;
+      document.getElementById('facInput').focus();
+      document.getElementById('facNext').addEventListener('click', ()=>{
+        p.hauteur=document.getElementById('facInput').value;
+        if(state._facPorteIndex < f.portes.length-1){ state._facPorteIndex++; state._facSubStep='porteLargeur'; }
         else { state._facSubStep='recapFacade'; }
         render();
       });
@@ -387,13 +479,13 @@ function render(){
     if(state._facSubStep==='recapFacade'){
       const c = calcFacade(f);
       app.innerHTML = `
-        <div class="eyebrow">Façade ${state.facades.length+1}${f.nom?' — '+f.nom:''}</div>
+        <div class="eyebrow">Façade ${state.facades.length+1}${f.nom?' — '+f.nom:''}${f.pignon?' (pignon)':''}</div>
         <div class="qtitle">Récapitulatif calculé de cette façade</div>
         <div style="margin-top:12px; padding:12px; background:#FFF7E6; border:1px dashed #E0B23C; border-radius:3px;">
-          <div class="recap-line"><span>Surface fenêtres (à déduire)</span><span class="mono">− ${c.surfaceFenetres.toFixed(1)} m²</span></div>
+          <div class="recap-line"><span>Surface ouvertures — fenêtres + portes (à déduire)</span><span class="mono">− ${c.surfaceOuvertures.toFixed(1)} m²</span></div>
           <div class="recap-line" style="font-weight:700;"><span>Surface isolant ITE à poser (vide pour plein)</span><span class="mono">${c.surfaceNette.toFixed(1)} m²</span></div>
-          <div class="recap-line"><span>Baguettes d'angle (façade + fenêtres)</span><span class="mono">${c.baguettesTotal.toFixed(1)} m</span></div>
-          <div class="recap-line"><span>Gouttes d'eau (largeurs fenêtres)</span><span class="mono">${c.gouttesEau.toFixed(1)} m</span></div>
+          <div class="recap-line"><span>Baguettes d'angle (façade + fenêtres + portes)</span><span class="mono">${c.baguettesTotal.toFixed(1)} m</span></div>
+          <div class="recap-line"><span>Gouttes d'eau (fenêtres + portes)</span><span class="mono">${c.gouttesEau.toFixed(1)} m</span></div>
           <div class="recap-line"><span>Reprise tableaux intérieurs</span><span class="mono">${c.repriseTableaux.toFixed(1)} m</span></div>
         </div>
         <div style="display:flex; gap:10px; margin-top:16px;">
@@ -413,6 +505,7 @@ function render(){
           <button type="button" class="choice-btn" onclick="facAgain(false)">Non, continuer</button>
           <button type="button" class="choice-btn" onclick="facAgain(true)">Oui, en ajouter une</button>
         </div>
+        <div style="margin-top:16px;"><button class="btn btn-ghost" onclick="state._facSubStep='recapFacade'; render();">Précédent</button></div>
       `;
       return;
     }
