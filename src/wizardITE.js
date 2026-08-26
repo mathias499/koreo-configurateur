@@ -548,7 +548,8 @@ function render(){
         ${state.q.finitionType && state.q.finitionType!=='classique'?`<div class="recap-line"><span>Finition — ${FINITIONS.find(f=>f.id===state.q.finitionType).label}</span><span class="mono">✓</span></div>`:''}
         ${state.q.facadeCouleur?`<div class="recap-line"><span>Couleur façade — ${state.q.facadeCouleur}${state.q.facadeCouleurOption?' (option)':' (incluse)'}</span><span class="mono">${state.q.facadeCouleurOption?'+8€/m²':'—'}</span></div>`:''}
         ${state.q.facadeCouleurBicolore && state.q.facadeCouleur2?`<div class="recap-line"><span>Bicolore — 2ème teinte ${state.q.facadeCouleur2}${state.q.facadeCouleur2Option?' (option)':' (incluse)'}</span><span class="mono">+10€/m²</span></div>`:''}
-        ${state.q.ceeApplicable===1?`<div class="recap-line"><span>CEE (${state.q.ceePrecaire==='precaire'?'précaire':'classique'})</span><span class="mono">− ${calcMontantCEE().toLocaleString('fr-FR')} €</span></div>`:''}
+        ${state.q.renovationGlobale!==1 && state.q.ceeApplicable===1?`<div class="recap-line"><span>CEE (${state.q.ceePrecaire==='precaire'?'précaire':'classique'})</span><span class="mono">− ${calcMontantCEE().toLocaleString('fr-FR')} €</span></div>`:''}
+        ${state.q.renovationGlobale===1?`<div class="recap-line"><span>Rénovation globale</span><span class="mono">✓ (pas de CEE)</span></div>`:''}
       </div>
       ${state.facades.map((f,i)=>{ const c=calcFacade(f); return `
         <div class="recap-group">
@@ -763,7 +764,7 @@ async function genererDevis(){
   genStatus='checking'; renderGenZone();
   try{
     const montantCEE = calcMontantCEE();
-    const ceeInfo = state.q.ceeApplicable===1 ? {
+    const ceeInfo = (state.q.renovationGlobale!==1 && state.q.ceeApplicable===1) ? {
       surfaces: { murs: totalSurfaceNetteFacades() },
       resistances: { murs: true },
       precaire: state.q.ceePrecaire==='precaire',
@@ -956,6 +957,7 @@ function totalIsolantM2Saisi(){
 // Reprend exactement la formule calcCEE() du CRM pour le poste "murs" (ITE/ITI).
 // Barème stocké dans Firebase à crm/baremesCEE.murs = {p: €/m² précaire, np: €/m² non précaire}.
 function calcMontantCEE(){
+  if(state.q.renovationGlobale===1) return 0;
   if(state.q.ceeApplicable!==1) return 0;
   const m2 = totalSurfaceNetteFacades();
   if(m2<=0) return 0;
@@ -1059,10 +1061,12 @@ const QUESTIONS = [
   {id:'peintureSousFaceCouleur', type:'text', q:"Quelle couleur pour la peinture sous face ?", key:'peintureSousFaceCouleur', skip:q=>q.peintureSousFace!==1},
   {id:'finitions', type:'finitions', q:"Finition de l'isolant"},
   // — CEE (Certificats d'Économie d'Énergie)
-  {id:'ceeApplicable', type:'toggle', q:"Y a-t-il des CEE (Certificats d'Économie d'Énergie) sur ce chantier ?", key:'ceeApplicable'},
+  {id:'renovationGlobale', type:'toggle', q:"S'agit-il d'une rénovation globale ?", key:'renovationGlobale',
+    sub:"En rénovation globale, l'aide est MaPrimeRénov' — pas de CEE sur ce devis."},
+  {id:'ceeApplicable', type:'toggle', q:"Y a-t-il des CEE (Certificats d'Économie d'Énergie) sur ce chantier ?", key:'ceeApplicable', skip:q=>q.renovationGlobale===1},
   {id:'ceePrecaire', type:'choice', q:"Le foyer est-il en situation de précarité énergétique ?", key:'ceePrecaire',
     sub:"Détermine le barème CEE applicable (précaire ou classique).",
-    options:[["Précaire","precaire"],["Non précaire (classique)","classique"]], skip:q=>q.ceeApplicable!==1},
+    options:[["Précaire","precaire"],["Non précaire (classique)","classique"]], skip:q=>q.renovationGlobale===1 || q.ceeApplicable!==1},
 
   {id:'facadeCouleur', type:'couleurFacade', q:"Quelle couleur de façade ?"},
 ];
