@@ -102,20 +102,22 @@ function WizardScreen({ client, project, onBack, onDone }) {
   const [status, setStatus] = useState("loading"); // loading | ready | error
   const [error, setError] = useState(null);
   const [catalogue, setCatalogue] = useState(null);
+  const [baremesCEE, setBaremesCEE] = useState(null);
 
-  // Étape 1 : charger le catalogue (ne touche pas au DOM du wizard)
+  // Étape 1 : charger le catalogue + les barèmes CEE (ne touche pas au DOM du wizard)
   useEffect(() => {
     let cancelled = false;
-    get(ref(db, "catalogue"))
-      .then((snap) => {
+    Promise.all([get(ref(db, "catalogue")), get(ref(db, "crm/baremesCEE"))])
+      .then(([snapCat, snapBaremes]) => {
         if (cancelled) return;
-        const cat = snap.exists() ? snap.val() : [];
+        const cat = snapCat.exists() ? snapCat.val() : [];
         if (!Array.isArray(cat) || cat.length === 0) {
           setError("Le catalogue produit est vide ou inaccessible.");
           setStatus("error");
           return;
         }
         setCatalogue(cat);
+        setBaremesCEE(snapBaremes.exists() ? snapBaremes.val() : {});
         setStatus("ready");
       })
       .catch((e) => {
@@ -133,8 +135,9 @@ function WizardScreen({ client, project, onBack, onDone }) {
     mountWizardITE(containerRef.current, {
       catalogue,
       client,
+      baremesCEE,
       onGenerate: async (payload) => {
-          // payload = { missingRefs, devisSections } fourni par le moteur
+          // payload = { missingRefs, devisSections, montantCEE, ceeInfo } fourni par le moteur
           if (payload.missingRefs && payload.missingRefs.length) {
             return { ok: false, missingRefs: payload.missingRefs };
           }
@@ -155,21 +158,29 @@ function WizardScreen({ client, project, onBack, onDone }) {
               validite: plus30.toISOString().slice(0, 10),
               sections: payload.devisSections,
               remisePct: 0,
+              cee: payload.montantCEE || 0,
               origine: "configurateur",
               updatedAt: Date.now(),
             };
             const existingDevis = normList(clientsArr[idx].devis);
-            clientsArr[idx] = { ...clientsArr[idx], devis: [...existingDevis, devis] };
+            const clientAvant = clientsArr[idx];
+            const clientApres = {
+              ...clientAvant,
+              devis: [...existingDevis, devis],
+              // On garde l'info CEE sur la fiche client, même format que le CRM (calcCEE), pour cohérence future.
+              cee: payload.ceeInfo ? { ...(clientAvant.cee||{}), ...payload.ceeInfo } : clientAvant.cee,
+            };
+            clientsArr[idx] = clientApres;
 
             await set(ref(db, "crm"), { ...data, clients: clientsArr });
-            return { ok: true, devisNumero: numeroInit };
+            return { ok: true, devisNumero: numeroInit, devis, client: clientApres };
           } catch (e) {
             return { ok: false, error: String(e) };
           }
       },
       onExit: onDone,
     });
-  }, [status, catalogue, client, onDone]);
+  }, [status, catalogue, baremesCEE, client, onDone]);
 
   if (status === "loading") return <div style={styles.centerMsg}>Chargement du catalogue produit…</div>;
   if (status === "error") return (

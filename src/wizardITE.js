@@ -84,7 +84,7 @@ function injectCss() {
 
 export function mountWizardITE(container, opts) {
   injectCss();
-  const { catalogue, client, onGenerate, onExit } = opts;
+  const { catalogue, client, baremesCEE, onGenerate, onExit } = opts;
 
   container.classList.add('wizardRoot');
   container.innerHTML = `
@@ -548,6 +548,7 @@ function render(){
         ${state.q.finitionType && state.q.finitionType!=='classique'?`<div class="recap-line"><span>Finition — ${FINITIONS.find(f=>f.id===state.q.finitionType).label}</span><span class="mono">✓</span></div>`:''}
         ${state.q.facadeCouleur?`<div class="recap-line"><span>Couleur façade — ${state.q.facadeCouleur}${state.q.facadeCouleurOption?' (option)':' (incluse)'}</span><span class="mono">${state.q.facadeCouleurOption?'+8€/m²':'—'}</span></div>`:''}
         ${state.q.facadeCouleurBicolore && state.q.facadeCouleur2?`<div class="recap-line"><span>Bicolore — 2ème teinte ${state.q.facadeCouleur2}${state.q.facadeCouleur2Option?' (option)':' (incluse)'}</span><span class="mono">+10€/m²</span></div>`:''}
+        ${state.q.ceeApplicable===1?`<div class="recap-line"><span>CEE (${state.q.ceePrecaire==='precaire'?'précaire':'classique'})</span><span class="mono">− ${calcMontantCEE().toLocaleString('fr-FR')} €</span></div>`:''}
       </div>
       ${state.facades.map((f,i)=>{ const c=calcFacade(f); return `
         <div class="recap-group">
@@ -597,10 +598,27 @@ function renderGenZone(){
     `;
     document.getElementById('genRetryBtn').addEventListener('click', ()=>{ genStatus='idle'; renderGenZone(); });
   } else if(genStatus==='success'){
+    const totalTTC = genLignes.reduce((s,l)=> s + l.prixTTC*l.quantite, 0);
     zone.innerHTML = `
       <div class="okline">✅ Devis ${genDevisNumero} généré et enregistré sur la fiche du client.</div>
-      <div style="margin-top:12px;"><button class="btn btn-primary" id="genDoneBtn">Terminé</button></div>
+      <div style="margin-top:16px; background:var(--panel); border:1.5px solid var(--line); border-radius:4px; padding:16px;">
+        <div style="font-family:'Oswald',sans-serif; text-transform:uppercase; font-size:13px; letter-spacing:.03em; color:var(--amber-deep); margin-bottom:10px; border-bottom:2px solid var(--ink); padding-bottom:6px;">Détail du devis</div>
+        ${genLignes.map(l=>`
+          <div style="display:flex; justify-content:space-between; gap:10px; font-size:12.5px; padding:6px 0; border-bottom:1px solid var(--concrete-2);">
+            <span style="flex:1;">${l.designation}<br/><span class="mono" style="color:var(--ink-soft); font-size:11px;">${l.quantite} ${l.unite} × ${l.prixTTC.toFixed(2)}€</span></span>
+            <span class="mono" style="flex-shrink:0; font-weight:700;">${(l.prixTTC*l.quantite).toFixed(2)} €</span>
+          </div>
+        `).join('')}
+        <div style="display:flex; justify-content:space-between; font-size:18px; font-weight:700; padding-top:14px; margin-top:6px; border-top:3px solid var(--ink);">
+          <span>Total</span><span>${totalTTC.toFixed(2)} €</span>
+        </div>
+      </div>
+      <div style="margin-top:16px; display:flex; gap:10px;">
+        <button class="btn btn-ghost" id="genPdfBtn">📄 Voir le PDF</button>
+        <button class="btn btn-primary" id="genDoneBtn">Terminé</button>
+      </div>
     `;
+    document.getElementById('genPdfBtn').addEventListener('click', genererPDFConfigurateur);
     document.getElementById('genDoneBtn').addEventListener('click', ()=>{ onExit && onExit(); });
   }
 }
@@ -609,6 +627,9 @@ let genStatus = 'idle';
 let genMissing = [];
 let genError = '';
 let genDevisNumero = '';
+let genLignes = [];
+let genDevis = null;
+let genClientApres = null;
 
 function matchProduct(refCode){ return catalogue.find(p=>p.ref===refCode); }
 
@@ -741,11 +762,23 @@ async function genererDevis(){
   if(missing.length){ genStatus='missing'; genMissing=missing; renderGenZone(); return; }
   genStatus='checking'; renderGenZone();
   try{
+    const montantCEE = calcMontantCEE();
+    const ceeInfo = state.q.ceeApplicable===1 ? {
+      surfaces: { murs: totalSurfaceNetteFacades() },
+      resistances: { murs: true },
+      precaire: state.q.ceePrecaire==='precaire',
+      montant: montantCEE,
+    } : null;
     const result = await onGenerate({
       missingRefs: [],
       devisSections: [{ id: uid(), type: "Isolation des murs par l'extérieur", lignes }],
+      montantCEE,
+      ceeInfo,
     });
-    if(result && result.ok){ genStatus='success'; genDevisNumero=result.devisNumero||''; }
+    if(result && result.ok){
+      genStatus='success'; genDevisNumero=result.devisNumero||''; genLignes=lignes;
+      genDevis = result.devis || null; genClientApres = result.client || client;
+    }
     else if(result && result.missingRefs && result.missingRefs.length){ genStatus='missing'; genMissing=result.missingRefs; }
     else { genStatus='error'; genError=(result && result.error) || 'Erreur inconnue.'; }
   } catch(e){
@@ -755,6 +788,138 @@ async function genererDevis(){
 }
 
 function setDemandeur(v){ state.demandeur=v; render(); }
+
+function esc(x){ return String(x==null?"":x).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function eur(n){ return (Math.round(n*100)/100).toLocaleString("fr-FR",{minimumFractionDigits:2, maximumFractionDigits:2}) + " €"; }
+function fmtDatePdf(d){ return new Date(d).toLocaleDateString("fr-FR",{day:"2-digit", month:"2-digit", year:"numeric"}); }
+
+// Génère le PDF du devis — même gabarit visuel exact que le CRM (DevisBuilder → genererPDF).
+function genererPDFConfigurateur(){
+  const dv = genDevis;
+  const cl = genClientApres || client;
+  if(!dv){ alert("Aucun devis généré pour l'instant."); return; }
+
+  const comNom = "KORÉO";
+  const comMail = "contact@koreo.fr";
+
+  const rows = (dv.sections||[]).map(sec=>{
+    const lg = (sec.lignes||[]).map((l,idx)=>{
+      const ttc = (Number(l.prixTTC)||0)*(Number(l.quantite)||0);
+      const ht = ttc/(1+(Number(l.tva)||0)/100);
+      const q = (Number(l.quantite)||0).toLocaleString("fr-FR");
+      return `<tr class="${idx%2?'zebre':''}">
+        <td class="l desig"><div class="titre">${esc(l.designation)}</div>${l.description?`<div class="corps">${esc(l.description)}</div>`:''}</td>
+        <td>${q} ${esc(l.unite||'')}</td>
+        <td>${eur(Number(l.prixTTC)||0)}</td>
+        <td>${eur(ht)}</td>
+        <td class="cell-ttc">${eur(ttc)}<span class="tva">dont TVA à ${String(l.tva).replace('.',',')} %</span></td>
+      </tr>`;
+    }).join('');
+    return `<tr class="section-row"><td colspan="5">${esc(sec.type)}</td></tr>${lg}`;
+  }).join('');
+
+  const lignesTTC = (sec)=> (sec.lignes||[]).reduce((a,l)=>a+(Number(l.prixTTC)||0)*(Number(l.quantite)||0),0);
+  const totalTTC = (dv.sections||[]).reduce((a,sec)=>a+lignesTTC(sec),0);
+  const totalHT = (dv.sections||[]).reduce((a,sec)=>a+(sec.lignes||[]).reduce((b,l)=>{ const ttc=(Number(l.prixTTC)||0)*(Number(l.quantite)||0); return b+ttc/(1+(Number(l.tva)||0)/100); },0),0);
+  const remisePct = Number(dv.remisePct)||0;
+  const remiseTTC = totalTTC*remisePct/100;
+  const netTTC = totalTTC-remiseTTC;
+  const cee = Math.min(Number(dv.cee)||0, netTTC);
+  const reste = Math.max(0, netTTC-cee);
+  const netHT = totalHT*(1-remisePct/100);
+  const tvaMontant = netTTC-netHT;
+
+  const remiseRow = remiseTTC>0 ? `<div class="lg muted"><span>Remise TTC</span><span>− ${eur(remiseTTC)}</span></div>` : '';
+  const ceeRow = cee>0 ? `<div class="lg cee"><span>Montant prime CEE</span><span>− ${eur(cee)}</span></div>` : '';
+
+  const html = `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>Devis ${esc(dv.numero)} — ${esc(cl.nom)}</title>
+<style>
+  :root{--vert:#0E7A56;--vert-fonce:#0B5E43;--orange:#F0662B;--encre:#1f2937;--gris:#6b7280;--gris-clair:#9ca3af;--trait:#e5e7eb;--zebre:#f3f6f5;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:"Helvetica Neue",Arial,sans-serif;color:var(--encre);font-size:11px;line-height:1.4;}
+  .page{padding:14mm 13mm;display:flex;flex-direction:column;min-height:100vh;}
+  .content{flex:1;}
+  .head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;}
+  .logo{font-size:34px;font-weight:800;letter-spacing:1px;color:#1f2937;line-height:1;}
+  .slogan{margin-top:6px;font-size:12px;font-weight:600;line-height:1.25;}
+  .slogan .hl{background:var(--orange);color:#fff;padding:0 4px;border-radius:2px;}
+  .meta{text-align:right;font-size:11px;}
+  .meta .num b{font-weight:800;} .meta .num span{color:var(--gris);}
+  .meta .exp,.meta .pg{color:var(--gris);font-size:10px;}
+  .meta .cli{font-weight:800;margin-top:8px;} .meta .date{color:var(--gris);font-size:10px;}
+  .infos{display:flex;justify-content:space-between;gap:20px;margin-bottom:24px;}
+  .etabli{font-size:11px;line-height:1.7;width:40%;} .etabli b{font-weight:800;}
+  .adr{font-size:11px;line-height:1.55;} .adr h4{font-size:12px;font-weight:800;margin-bottom:6px;} .adr .nom{font-weight:700;} .adr .cp{margin-top:8px;}
+  table{width:100%;border-collapse:collapse;}
+  thead th{background:var(--vert);color:#fff;font-size:10px;font-weight:700;padding:8px 10px;text-align:right;}
+  thead th.l{text-align:left;}
+  .section-row td{background:#eaf3ef;color:var(--vert-fonce);font-weight:800;font-size:10.5px;text-transform:uppercase;letter-spacing:.3px;padding:7px 10px;}
+  tbody td{padding:10px;font-size:10.5px;border-bottom:1px solid var(--trait);vertical-align:top;text-align:right;}
+  tbody td.l{text-align:left;} tbody tr.zebre td{background:var(--zebre);}
+  .desig .titre{font-weight:800;font-size:11px;} .desig .corps{color:var(--gris);font-size:9.5px;line-height:1.45;margin-top:3px;max-width:360px;}
+  .cell-ttc{font-weight:700;} .cell-ttc .tva{display:block;color:var(--gris-clair);font-size:8.5px;font-weight:400;margin-top:2px;}
+  .totaux-wrap{display:flex;justify-content:flex-end;margin-top:6px;}
+  .totaux{width:52%;}
+  .lg{display:flex;justify-content:space-between;padding:5px 12px;font-size:11px;color:#374151;}
+  .lg.entete{background:var(--vert);color:#fff;font-weight:800;font-size:13px;padding:9px 12px;}
+  .lg.muted{color:var(--gris);} .lg.cee{color:var(--vert);font-weight:700;}
+  .reste{background:var(--vert-fonce);color:#fff;font-weight:800;font-size:15px;padding:11px 12px;display:flex;justify-content:space-between;margin-top:4px;}
+  .mentions{margin-top:18px;font-size:8px;color:var(--gris);line-height:1.5;text-align:justify;} .mentions p{margin-bottom:6px;}
+  .datesign{font-size:11px;margin-top:14px;} .accord{font-size:10px;color:#374151;margin-top:8px;}
+  .signatures{display:flex;gap:40px;margin-top:10px;font-size:11px;} .sign{flex:1;} .sign .lbl{margin-bottom:40px;} .sign .rep{font-style:italic;text-align:center;color:#374151;}
+  .footer{margin-top:auto;padding-top:12px;border-top:2px solid var(--vert);display:flex;justify-content:space-between;gap:14px;font-size:8.5px;line-height:1.55;color:#374151;}
+  .footer b{display:block;font-size:11px;color:#111827;margin-bottom:3px;font-weight:800;}
+  .footer .contacts span{display:block;}
+  @media print{@page{size:A4;margin:0;} .page{min-height:auto;}}
+</style></head><body><div class="page"><div class="content">
+  <div class="head">
+    <div><div class="logo">KOREO</div><div class="slogan">Du conseil<br>à la <span class="hl">réalisation</span><br>de vos travaux</div></div>
+    <div class="meta"><div class="num"><b>Devis gratuit</b> <span>n°${esc(dv.numero)}</span></div><div class="exp">Exemplaire client</div><div class="cli">${esc(cl.civilite||'')} ${esc(cl.prenom||'')} ${esc(cl.nom||'')}</div><div class="date">Le ${fmtDatePdf(dv.date)}</div></div>
+  </div>
+  <div class="infos">
+    <div class="etabli">
+      <div><b>Établi par :</b> ${esc(comNom)}</div>
+      <div><b>Adresse mail :</b> ${esc(comMail)}</div>
+      <div><b>Tel :</b> 01 64 43 30 00</div>
+      <div><b>Web :</b> www.koreo.fr</div>
+      <div style="margin-top:8px;"><b>Devis valable jusqu'au :</b> ${fmtDatePdf(dv.validite)}</div>
+    </div>
+    <div class="adr"><h4>Adresse des travaux</h4><p class="nom">${esc(cl.civilite||'')} ${esc(cl.prenom||'')} ${esc(cl.nom||'')}</p><p>${esc(cl.adresse||'')}</p><p class="cp">${esc(cl.codePostal||'')} ${esc(cl.ville||'')}</p></div>
+    <div class="adr"><h4>Adresse de facturation</h4><p class="nom">${esc(cl.civilite||'')} ${esc(cl.prenom||'')} ${esc(cl.nom||'')}</p><p>${esc(cl.adresse||'')}</p><p class="cp">${esc(cl.codePostal||'')} ${esc(cl.ville||'')}</p></div>
+  </div>
+  <table><thead><tr><th class="l">Désignation</th><th>Quantité</th><th>PU TTC</th><th>Total HT</th><th>Total TTC</th></tr></thead><tbody>${rows}</tbody></table>
+  <div class="totaux-wrap"><div class="totaux">
+    <div class="lg entete"><span>MONTANT TOTAL TTC</span><span>${eur(totalTTC)}</span></div>
+    ${remiseRow}
+    <div class="lg"><span>Total net TTC</span><span>${eur(netTTC)}</span></div>
+    ${ceeRow}
+    <div class="lg muted"><span>Dont TVA</span><span>${eur(tvaMontant)}</span></div>
+    <div class="lg"><span>Total net HT</span><span>${eur(netHT)}</span></div>
+    <div class="reste"><span>Reste à régler</span><span>${eur(reste)}</span></div>
+  </div></div>
+  <div class="mentions">
+    <p>Selon les informations fournies par vos soins, ce devis vous est présenté avec un taux de T.V.A. réduit. Ce taux ne s'applique que sur un local de plus de deux ans, affecté totalement à l'habitation (plus de 50 % de la superficie). Il ne pourra être effectivement appliqué qu'après renvoi de l'attestation jointe.</p>
+    <p>Nos prix sont établis sur la base des taux de TVA en vigueur à la date de la remise de l'offre. Toute variation ultérieure de ces taux, imposée par la loi, sera répercutée sur le prix.</p>
+    <p>Conformément à l'article L 611-1 du code de la consommation, le consommateur est informé qu'il a la possibilité de saisir un médiateur de la consommation. Coordonnées : Association MEDIMMOCONSO, 1 Allée du Parc de Mesemena — Bât A — CS25222 — 44505 LA BAULE CEDEX ; contact@medimmoconso.fr</p>
+  </div>
+  <div class="datesign">Date : ............/............/............ à : ........................................................................</div>
+  <div class="accord">Le client déclare avoir pris connaissance et accepter les termes et conditions générales de vente sur les deux volets.</div>
+  <div class="signatures"><div class="sign"><div class="lbl">Signature client</div></div><div class="sign"><div class="lbl">Signature du représentant KORÉO</div><div class="rep">${esc(comNom)}</div></div></div>
+</div>
+  <div class="footer">
+    <div><b>SAS KORÉO</b>24, Rue Clément ADER<br>Zac de la Clé Saint Pierre — Bâtiment D2<br>91280 SAINT-PIERRE-DU-PERRAY</div>
+    <div><b>&nbsp;</b>SAS au capital de 50 000,00 €<br>TVA intra FR29920767688<br>Siret : 92076768800061 · RCS EVRY</div>
+    <div><b>IBAN</b>FR56 3000 2069 0700 0007 0104 L54<br><b style="margin-top:3px;">BIC</b>CRLYFRPP</div>
+    <div class="contacts"><b>&nbsp;</b><span>Tel 01 64 43 30 00</span><span>contact@koreo.fr</span><span>www.koreo.fr</span></div>
+  </div>
+</div>
+<script>window.onload=function(){setTimeout(function(){window.print();},300);};<\/script>
+</body></html>`;
+
+  const w = window.open("", "_blank");
+  if(!w){ alert("Autorise les fenêtres pop-up pour générer le PDF."); return; }
+  w.document.open(); w.document.write(html); w.document.close();
+}
 function setForme(v){ state.forme=v; render(); }
 function echafSetType(k){ state._echafType=k; state._echafSubStep='m2'; render(); }
 function echafSetM2(v){ state._echafM2=v; state._echafSubStep='again'; render(); }
@@ -783,6 +948,17 @@ function totalSurfaceNetteFacades(){
 }
 function totalIsolantM2Saisi(){
   return state.q.isolants.reduce((s,i)=> s + (parseFloat(i.m2)||0), 0);
+}
+
+// Reprend exactement la formule calcCEE() du CRM pour le poste "murs" (ITE/ITI).
+// Barème stocké dans Firebase à crm/baremesCEE.murs = {p: €/m² précaire, np: €/m² non précaire}.
+function calcMontantCEE(){
+  if(state.q.ceeApplicable!==1) return 0;
+  const m2 = totalSurfaceNetteFacades();
+  if(m2<=0) return 0;
+  const champ = state.q.ceePrecaire==='precaire' ? 'p' : 'np';
+  const tarif = Number((baremesCEE && baremesCEE.murs && baremesCEE.murs[champ]) || 0);
+  return Math.round(m2 * tarif);
 }
 
 const QUESTIONS = [
@@ -879,6 +1055,12 @@ const QUESTIONS = [
   {id:'peintureSousFaceMl', type:'number', q:"Combien de ml de peinture sous face ?", key:'peintureSousFaceMl', unit:'ml', skip:q=>q.peintureSousFace!==1},
   {id:'peintureSousFaceCouleur', type:'text', q:"Quelle couleur pour la peinture sous face ?", key:'peintureSousFaceCouleur', skip:q=>q.peintureSousFace!==1},
   {id:'finitions', type:'finitions', q:"Finition de l'isolant"},
+  // — CEE (Certificats d'Économie d'Énergie)
+  {id:'ceeApplicable', type:'toggle', q:"Y a-t-il des CEE (Certificats d'Économie d'Énergie) sur ce chantier ?", key:'ceeApplicable'},
+  {id:'ceePrecaire', type:'choice', q:"Le foyer est-il en situation de précarité énergétique ?", key:'ceePrecaire',
+    sub:"Détermine le barème CEE applicable (précaire ou classique).",
+    options:[["Précaire","precaire"],["Non précaire (classique)","classique"]], skip:q=>q.ceeApplicable!==1},
+
   {id:'facadeCouleur', type:'couleurFacade', q:"Quelle couleur de façade ?"},
 ];
 
