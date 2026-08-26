@@ -870,8 +870,11 @@ function genererPDFConfigurateur(){
   .footer{margin-top:auto;padding-top:12px;border-top:2px solid var(--vert);display:flex;justify-content:space-between;gap:14px;font-size:8.5px;line-height:1.55;color:#374151;}
   .footer b{display:block;font-size:11px;color:#111827;margin-bottom:3px;font-weight:800;}
   .footer .contacts span{display:block;}
-  @media print{@page{size:A4;margin:0;} .page{min-height:auto;}}
-</style></head><body><div class="page"><div class="content">
+  @media print{@page{size:A4;margin:0;} .page{min-height:auto;} .closeBtn{display:none;}}
+  .closeBtn{position:fixed;top:14px;right:14px;width:38px;height:38px;border-radius:50%;background:#1f2937;color:#fff;border:none;font-size:18px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.25);z-index:9999;}
+</style></head><body>
+<button class="closeBtn" onclick="window.close()" title="Fermer">✕</button>
+<div class="page"><div class="content">
   <div class="head">
     <div><div class="logo">KOREO</div><div class="slogan">Du conseil<br>à la <span class="hl">réalisation</span><br>de vos travaux</div></div>
     <div class="meta"><div class="num"><b>Devis gratuit</b> <span>n°${esc(dv.numero)}</span></div><div class="exp">Exemplaire client</div><div class="cli">${esc(cl.civilite||'')} ${esc(cl.prenom||'')} ${esc(cl.nom||'')}</div><div class="date">Le ${fmtDatePdf(dv.date)}</div></div>
