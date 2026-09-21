@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { initializeApp } from "firebase/app";
-import { getDatabase, ref, get, set } from "firebase/database";
+import { getDatabase, ref, get, runTransaction } from "firebase/database";
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut, sendPasswordResetEmail } from "firebase/auth";
 import { mountWizardITE } from "./wizardITE.js";
 
 // Même config Firebase que le CRM — même base de données, même projet.
@@ -15,11 +16,54 @@ const firebaseConfig = {
 };
 const firebaseApp = initializeApp(firebaseConfig);
 const db = getDatabase(firebaseApp);
+const auth = getAuth(firebaseApp);
 
 function normList(v) {
   if (Array.isArray(v)) return v.filter((x) => x != null);
   if (v && typeof v === "object") return Object.values(v).filter((x) => x != null);
   return [];
+}
+
+// ─────────────────────────────────────────────────────────
+// Connexion (mêmes identifiants que le CRM)
+// ─────────────────────────────────────────────────────────
+function Login() {
+  const [email, setEmail] = useState("");
+  const [pass, setPass] = useState("");
+  const [err, setErr] = useState("");
+  const [info, setInfo] = useState("");
+  const [busy, setBusy] = useState(false);
+  const connexion = async () => {
+    setErr(""); setInfo("");
+    if (!email.trim() || !pass) { setErr("Renseigne ton email et ton mot de passe."); return; }
+    setBusy(true);
+    try { await signInWithEmailAndPassword(auth, email.trim(), pass); }
+    catch (e) { setErr("Email ou mot de passe incorrect."); }
+    setBusy(false);
+  };
+  const oubli = async () => {
+    setErr(""); setInfo("");
+    if (!email.trim()) { setErr("Tape d'abord ton email, puis clique à nouveau sur « Mot de passe oublié »."); return; }
+    try { await sendPasswordResetEmail(auth, email.trim()); setInfo("Un email pour changer ton mot de passe vient d'être envoyé."); }
+    catch (e) { setErr("Impossible d'envoyer l'email. Vérifie l'adresse."); }
+  };
+  return (
+    <div style={styles.homeScreen}>
+      <div style={styles.homeCenter}>
+        <div style={styles.homeLogo}>KORÉO</div>
+        <div style={styles.homeTitle}>Configurateur découverte</div>
+        <div style={styles.homeSub}>Connecte-toi avec les mêmes identifiants que le CRM.</div>
+        <div style={{ width: "100%", marginTop: 26, textAlign: "left" }}>
+          <input type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" style={styles.loginInput} />
+          <input type="password" autoComplete="current-password" value={pass} onChange={(e) => setPass(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") connexion(); }} placeholder="Mot de passe" style={{ ...styles.loginInput, marginTop: 10 }} />
+          {err && <div style={styles.loginErr}>{err}</div>}
+          {info && <div style={styles.loginInfo}>{info}</div>}
+          <button onClick={oubli} style={styles.linkBtn}>Mot de passe oublié ?</button>
+        </div>
+      </div>
+      <button onClick={connexion} disabled={busy} style={{ ...styles.homeBtn, opacity: busy ? 0.6 : 1 }}>{busy ? "Connexion…" : "Se connecter"}</button>
+    </div>
+  );
 }
 
 // ─────────────────────────────────────────────────────────
@@ -31,10 +75,9 @@ function ClientSearch({ onSelect }) {
   const [err, setErr] = useState(null);
 
   useEffect(() => {
-    get(ref(db, "crm"))
+    get(ref(db, "crm/clients"))
       .then((snap) => {
-        const data = snap.exists() ? snap.val() : {};
-        setClients(normList(data.clients));
+        setClients(normList(snap.exists() ? snap.val() : []));
       })
       .catch((e) => setErr(String(e)));
   }, []);
@@ -142,16 +185,10 @@ function WizardScreen({ client, project, onBack, onDone }) {
             return { ok: false, missingRefs: payload.missingRefs };
           }
           try {
-            const snapCrm = await get(ref(db, "crm"));
-            const data = snapCrm.exists() ? snapCrm.val() : { clients: [] };
-            const clientsArr = normList(data.clients);
-            const idx = clientsArr.findIndex((c) => c.id === client.id);
-            if (idx === -1) return { ok: false, error: "Client introuvable (a-t-il été supprimé entre temps ?)" };
-
             const numeroInit = "DEV-" + String(Date.now()).slice(-6);
             const today = new Date();
             const plus30 = new Date(Date.now() + 30 * 864e5);
-            const devis = {
+            const devis = JSON.parse(JSON.stringify({
               id: "d" + Date.now() + Math.random().toString(36).slice(2, 6),
               numero: numeroInit,
               date: today.toISOString().slice(0, 10),
@@ -161,18 +198,28 @@ function WizardScreen({ client, project, onBack, onDone }) {
               cee: payload.montantCEE || 0,
               origine: "configurateur",
               updatedAt: Date.now(),
-            };
-            const existingDevis = normList(clientsArr[idx].devis);
-            const clientAvant = clientsArr[idx];
-            const clientApres = {
-              ...clientAvant,
-              devis: [...existingDevis, devis],
-              // On garde l'info CEE sur la fiche client, même format que le CRM (calcCEE), pour cohérence future.
-              cee: payload.ceeInfo ? { ...(clientAvant.cee||{}), ...payload.ceeInfo } : clientAvant.cee,
-            };
-            clientsArr[idx] = clientApres;
+            }));
 
-            await set(ref(db, "crm"), { ...data, clients: clientsArr });
+            // On ne touche QU'À ce client, fusionné avec la version la plus récente de la base
+            // (plus de réécriture de toute la base → plus d'écrasement du travail des autres).
+            let introuvable = false;
+            let clientApres = null;
+            const res = await runTransaction(ref(db, "crm/clients"), (cur) => {
+              if (cur === null) return cur; // Firebase relancera avec les vraies données
+              const arr = normList(cur);
+              const idx = arr.findIndex((c) => c && c.id === client.id);
+              if (idx === -1) { introuvable = true; return; } // annule
+              introuvable = false;
+              const avant = arr[idx];
+              const apres = { ...avant, devis: [...normList(avant.devis), devis] };
+              if (payload.ceeInfo) apres.cee = JSON.parse(JSON.stringify({ ...(avant.cee || {}), ...payload.ceeInfo }));
+              clientApres = apres;
+              arr[idx] = apres;
+              return arr;
+            });
+            if (!res.committed) {
+              return { ok: false, error: introuvable ? "Client introuvable (a-t-il été supprimé entre temps ?)" : "Enregistrement impossible, réessaie dans un instant." };
+            }
             return { ok: true, devisNumero: numeroInit, devis, client: clientApres };
           } catch (e) {
             return { ok: false, error: String(e) };
@@ -198,13 +245,14 @@ function WizardScreen({ client, project, onBack, onDone }) {
 // ─────────────────────────────────────────────────────────
 // Écran 0 : accueil KORÉO
 // ─────────────────────────────────────────────────────────
-function Home({ onStart }) {
+function Home({ onStart, user }) {
   return (
     <div style={styles.homeScreen}>
       <div style={styles.homeCenter}>
         <div style={styles.homeLogo}>KORÉO</div>
         <div style={styles.homeTitle}>Configurateur découverte</div>
         <div style={styles.homeSub}>Réalisez votre découverte chantier en présence du client, façade par façade.</div>
+        {user && <div style={{ marginTop: 22, fontSize: 12, color: "#B9C9C2" }}>Connecté : {user.email} · <button onClick={() => signOut(auth)} style={{ ...styles.linkBtn, color: "#F2A900", marginTop: 0, padding: 0 }}>Se déconnecter</button></div>}
       </div>
       <button onClick={onStart} style={styles.homeBtn}>Commencer</button>
     </div>
@@ -218,8 +266,16 @@ export default function App() {
   const [started, setStarted] = useState(false);
   const [client, setClient] = useState(null);
   const [project, setProject] = useState(null);
+  const [user, setUser] = useState(undefined); // undefined = vérification en cours
 
-  if (!started) return <Home onStart={() => setStarted(true)} />;
+  useEffect(() => onAuthStateChanged(auth, (u) => {
+    setUser(u || null);
+    if (!u) { setStarted(false); setClient(null); setProject(null); }
+  }), []);
+
+  if (user === undefined) return <div style={styles.centerMsg}>Chargement…</div>;
+  if (!user) return <Login />;
+  if (!started) return <Home user={user} onStart={() => setStarted(true)} />;
   if (!client) return <ClientSearch onSelect={setClient} />;
   if (!project) return <ProjectSelect client={client} onBack={() => setClient(null)} onSelect={setProject} />;
   return (
@@ -248,5 +304,9 @@ const styles = {
   clientBtn: { display: "block", width: "100%", textAlign: "left", padding: "12px 14px", marginBottom: 8, background: "#fff", border: "1.5px solid #E1DFD9", borderRadius: 6, cursor: "pointer" },
   backBtn: { background: "none", border: "none", color: "#0B5E43", fontWeight: 700, fontSize: 13, cursor: "pointer", padding: 0, marginBottom: 18 },
   projectBtn: { display: "block", width: "100%", textAlign: "left", padding: "16px", marginBottom: 10, background: "#0B5E43", color: "#fff", border: "none", borderRadius: 8, fontSize: 15, fontWeight: 700, cursor: "pointer" },
+  loginInput: { width: "100%", padding: "14px 16px", fontSize: 16, border: "1.5px solid #2E5E55", borderRadius: 8, boxSizing: "border-box", background: "#0A4A42", color: "#fff", outline: "none" },
+  loginErr: { marginTop: 10, fontSize: 13, color: "#FFB4A6", fontWeight: 600 },
+  loginInfo: { marginTop: 10, fontSize: 13, color: "#A7E3C0", fontWeight: 600 },
+  linkBtn: { background: "none", border: "none", color: "#B9C9C2", fontSize: 13, cursor: "pointer", padding: 0, marginTop: 14, textDecoration: "underline" },
   centerMsg: { minHeight: "100dvh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", fontFamily: "'IBM Plex Sans', sans-serif", padding: 20, textAlign: "center" },
 };
