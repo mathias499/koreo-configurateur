@@ -3,6 +3,7 @@ import { initializeApp } from "firebase/app";
 import { getDatabase, ref, get, runTransaction } from "firebase/database";
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut, sendPasswordResetEmail } from "firebase/auth";
 import { mountWizardITE } from "./wizardITE.js";
+import { mountWizardToiture } from "./wizardToiture.js";
 
 // Même config Firebase que le CRM — même base de données, même projet.
 const firebaseConfig = {
@@ -130,9 +131,12 @@ function ProjectSelect({ client, onBack, onSelect }) {
       <button onClick={() => onSelect("ITE")} style={styles.projectBtn}>
         🏠 Isolation Thermique par l'Extérieur (ITE)
       </button>
-      <div style={{ ...styles.projectBtn, opacity: 0.4, cursor: "default" }}>
-        🏚️ Toiture — bientôt disponible
-      </div>
+      <button onClick={() => onSelect("COMBLES")} style={styles.projectBtn}>
+        🧤 Isolation des combles perdus
+      </button>
+      <button onClick={() => onSelect("TOITURE")} style={styles.projectBtn}>
+        🏚️ Toiture (changement, avec isolation, traitement)
+      </button>
     </div>
   );
 }
@@ -175,7 +179,9 @@ function WizardScreen({ client, project, onBack, onDone }) {
   // Étape 2 : une fois status==='ready' ET le conteneur bien rendu à l'écran, on monte le wizard.
   useEffect(() => {
     if (status !== "ready" || !catalogue || !containerRef.current) return;
-    mountWizardITE(containerRef.current, {
+    const mount = project === "ITE" ? mountWizardITE : mountWizardToiture;
+    mount(containerRef.current, {
+      mode: project,
       catalogue,
       client,
       baremesCEE,
@@ -227,7 +233,7 @@ function WizardScreen({ client, project, onBack, onDone }) {
       },
       onExit: onDone,
     });
-  }, [status, catalogue, baremesCEE, client, onDone]);
+  }, [status, catalogue, baremesCEE, client, project, onDone]);
 
   if (status === "loading") return <div style={styles.centerMsg}>Chargement du catalogue produit…</div>;
   if (status === "error") return (
