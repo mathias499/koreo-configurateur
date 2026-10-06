@@ -99,113 +99,121 @@ function injectCssT() {
 // ─────────────────────────────────────────────────────────
 const P = {
   // Préparation
-  ORGA_CLASSIQUE:   { ref:'ORGA-CLASSIQUE',     id:'P0001', u:'forfait' },
-  ORGA_DP:          { ref:'ORGA-DP',            id:'P0016', u:'forfait' },
-  PROTECTION:       { ref:'PROTECTION-CHANTIER',id:'P0008', u:'forfait' },
-  ECHAF_CLASSIQUE:  { ref:'ECHAF-CLASSIQUE',    id:'P0002', u:'m²' },
-  ECHAF_VOIRIE:     { ref:'ECHAF-VOIRIE',       id:'P0003', u:'m²' },
-  ECHAF_FORFAIT:    { ref:'ECHAF-FORFAIT',      id:'P0015', u:'forfait' },
-  BENNE:            { ref:'BENNE-6M3',          id:'P0004', u:'forfait' },
-  CAMION_BENNE:     { ref:'CAMION-BENNE',       id:'P0014', u:'forfait' },
-  GRENIER:          { ref:'GRENIER-ENCOMBRE',   id:'P0009', u:'forfait' },
-  CACHE_SPOT:       { ref:'CACHE-SPOT',         id:'P0011', u:'u' },
-  MONTE_CHARGE:     { ref:'MONTE-CHARGE',       id:'P0132', u:'forfait' },
-  ACCES_TOITURE:    { ref:'ACCES-TOITURE',      id:'P0131', u:'forfait' },
-  MISE_EN_PLACE:    { ref:'MISE-EN-PLACE-CHANTIER', id:'P0010', u:'forfait' },
-  CARROTTAGE:       { ref:'CARROTTAGE-DALLE',   id:'P0005', u:'u' },
-  EXTRACTEUR:       { ref:'EXTRACTEUR-AIR',     id:'P0250', u:'u' },
+  ORGA_CLASSIQUE:   { ref:'ORGA-CLASSIQUE',     id:'P0001', d:'Organisation Chantier', ht:499.0, u:'forfait' },
+  ORGA_DP:          { ref:'ORGA-DP',            id:'P0016', d:'Organisation Chantier + DP', ht:799.0, u:'forfait' },
+  PROTECTION:       { ref:'PROTECTION-CHANTIER',id:'P0008', d:'Mise en place de protection de chantier', ht:159.0, u:'forfait' },
+  ECHAF_CLASSIQUE:  { ref:'ECHAF-CLASSIQUE',    id:'P0002', d:'Échafaudage pour maison individuelle', ht:15.0, u:'m²' },
+  ECHAF_VOIRIE:     { ref:'ECHAF-VOIRIE',       id:'P0003', d:'Échafaudage de voirie', ht:25.0, u:'m²' },
+  ECHAF_FORFAIT:    { ref:'ECHAF-FORFAIT',      id:'P0015', d:'Forfait échafaudage pour maison individuelle', ht:1390.0, u:'forfait' },
+  BENNE:            { ref:'BENNE-6M3',          id:'P0004', d:'Benne 6m3', ht:890.0, u:'forfait' },
+  CAMION_BENNE:     { ref:'CAMION-BENNE',       id:'P0014', d:'Camion benne', ht:790.0, u:'forfait' },
+  GRENIER:          { ref:'GRENIER-ENCOMBRE',   id:'P0009', d:'Forfait grenier encombré', ht:490.0, u:'forfait' },
+  CACHE_SPOT:       { ref:'CACHE-SPOT',         id:'P0011', d:'Protection cache spots', ht:24.0, u:'u' },
+  MONTE_CHARGE:     { ref:'MONTE-CHARGE',       id:'P0132', d:'Monte-charge pour couverture', ht:249.0, u:'forfait' },
+  ACCES_TOITURE:    { ref:'ACCES-TOITURE',      id:'P0131', d:'Accès toiture', ht:149.0, u:'forfait' },
+  MISE_EN_PLACE:    { ref:'MIP', alt:['MISE-EN-PLACE-CHANTIER','MEP'], id:'P0010', d:'Mise en place chantier V2', ht:490.0, u:'forfait' },
+  CARROTTAGE:       { ref:'CARROTTAGE-DALLE',   id:'P0005', d:'Carottage dalle béton', ht:200.0, u:'u' },
+  EXTRACTEUR:       { ref:'EXTRACTEUR-AIR',     id:'P0250', d:'Création d’un extracteur d’air', ht:850.0, u:'u' },
   // Produits pas encore au catalogue (pending) : ne bloquent pas le devis, signalés dans le récap
   CONTOUR_TRAPPE:   { ref:'CONTOUR-TRAPPE',     id:null, u:'u',  pending:true, label:'Contour de trappe' },
   VMC_GAINES:       { ref:'VMC-GAINES',         id:null, u:'ml', pending:true, label:'Gaines de VMC' },
+  VMC_REMP_COMPACT_MW_B: { ref:'VMC-REMP-COMPACT-MW-B', id:null, u:'forfait', pending:true, label:'Remplacement VMC hygro B Compact MW' },
+  VMC_REMP_COMPACT_HP_B: { ref:'VMC-REMP-COMPACT-HP-B', id:null, u:'forfait', pending:true, label:'Remplacement VMC hygro B Compact HP+' },
+  VMC_REMP_PREMIUM_MW_B: { ref:'VMC-REMP-PREMIUM-MW-B', id:null, u:'forfait', pending:true, label:'Remplacement VMC hygro B Premium MW' },
+  VMC_REMP_PREMIUM_HP_B: { ref:'VMC-REMP-PREMIUM-HP-B', id:null, u:'forfait', pending:true, label:'Remplacement VMC hygro B Premium HP+' },
+  VMC_CREA_COMPACT_MW_B: { ref:'VMC-CREA-COMPACT-MW-B', id:null, u:'forfait', pending:true, label:'Création VMC hygro B Compact MW' },
+  VMC_CREA_COMPACT_HP_B: { ref:'VMC-CREA-COMPACT-HP-B', id:null, u:'forfait', pending:true, label:'Création VMC hygro B Compact HP+' },
+  VMC_CREA_PREMIUM_MW_B: { ref:'VMC-CREA-PREMIUM-MW-B', id:null, u:'forfait', pending:true, label:'Création VMC hygro B Premium MW' },
+  VMC_CREA_PREMIUM_HP_B: { ref:'VMC-CREA-PREMIUM-HP-B', id:null, u:'forfait', pending:true, label:'Création VMC hygro B Premium HP+' },
   // Combles perdus
-  DEBARRAS_MONO:    { ref:'COMBLES-DEBARRAS-MONO',   id:'P0017', u:'m²' },
-  DEBARRAS_DOUBLE:  { ref:'COMBLES-DEBARRAS-DOUBLE', id:'P0007', u:'m²' },
-  SOUF_ROCHE_R4:    { ref:'SOUF-ROCHE-R4',      id:'P0045', u:'m²' },
-  SOUF_ROCHE_R7:    { ref:'SOUF-ROCHE-R7',      id:'P0018', u:'m²' },
-  SOUF_ROCHE_R8:    { ref:'SOUF-ROCHE-R8',      id:'P0019', u:'m²' },
-  SOUF_VERRE_R7:    { ref:'SOUF-VERRE-R7',      id:'P0041', u:'m²' },
-  SOUF_VERRE_R10:   { ref:'SOUF-VERRE-R10',     id:'P0039', u:'m²' },
-  SOUF_OUATE_R7:    { ref:'SOUF-OUATE-R7',      id:'P0052', u:'m²' },
-  SOUF_BOIS:        { ref:'SOUF-BOIS',          id:'P0051', u:'m²' },
-  ROULEAU_200:      { ref:'ROULEAU-KIFIT-200',  id:'P0034', u:'m²' },
-  ECART_FEU:        { ref:'ECART-FEU',          id:'P0246', u:'u' },
-  OSB:              { ref:'PLANCHER-OSB',       id:'P0144', u:'m²' },
-  REHAUSSE:         { ref:'PLANCHER-REHAUSSE',  id:'P0140', u:'m²' },
-  SOLIVBOX:         { ref:'SOLIVBOX',           id:'P0026', u:'m²' },
-  DEPOSE_PLANCHER:  { ref:'PLANCHER-DEPOSE',    id:'P0141', u:'m²' },
-  VMC_REMP_COMPACT_MW:  { ref:'VMC-REMP-COMPACT-MW',  id:'P0252', u:'forfait' },
-  VMC_REMP_COMPACT_HP:  { ref:'VMC-REMP-COMPACT-HP',  id:'P0254', u:'forfait' },
-  VMC_REMP_PREMIUM_MW:  { ref:'VMC-REMP-PREMIUM-MW',  id:'P0247', u:'forfait' },
-  VMC_REMP_PREMIUM_HP:  { ref:'VMC-REMP-PREMIUM-HP',  id:'P0257', u:'forfait' },
-  VMC_CREA_COMPACT_MW:  { ref:'VMC-CREA-COMPACT-MW',  id:'P0251', u:'forfait' },
-  VMC_CREA_COMPACT_HP:  { ref:'VMC-CREA-COMPACT-HP',  id:'P0255', u:'forfait' },
-  VMC_CREA_PREMIUM_MW:  { ref:'VMC-CREA-PREMIUM-MW',  id:'P0256', u:'forfait' },
-  VMC_CREA_PREMIUM_HP:  { ref:'VMC-CREA-PREMIUM-HP',  id:'P0248', u:'forfait' },
-  ENTREE_AIR:       { ref:'ENTREE-AIR',         id:'P0268', u:'u' },
-  EXTRACTEUR_SOLAIRE:{ ref:'EXTRACTEUR-SOLAIRE',id:'P0253', u:'forfait' },
+  DEBARRAS_MONO:    { ref:'COMBLES-DEBARRAS-MONO',   id:'P0017', d:'Débarras combles perdus mono-couche', ht:15.0, u:'m²' },
+  DEBARRAS_DOUBLE:  { ref:'COMBLES-DEBARRAS-DOUBLE', id:'P0007', d:'Débarras double couche', ht:19.0, u:'m²' },
+  SOUF_ROCHE_R4:    { ref:'SOUF-ROCHE-R4',      id:'P0045', d:'Isolation thermique R4 par soufflage de laine de roche', ht:35.0, u:'m²' },
+  SOUF_ROCHE_R7:    { ref:'SOUF-ROCHE-R7',      id:'P0018', d:'Isolation thermique R7 par soufflage de laine de roche', ht:52.0, u:'m²' },
+  SOUF_ROCHE_R8:    { ref:'SOUF-ROCHE-R8',      id:'P0019', d:'Isolation thermique R8 par soufflage de laine de roche', ht:58.0, u:'m²' },
+  SOUF_VERRE_R7:    { ref:'SOUF-VERRE-R7',      id:'P0041', d:'Isolation thermique R7 par soufflage de laine de verre', ht:49.0, u:'m²' },
+  SOUF_VERRE_R10:   { ref:'SOUF-VERRE-R10',     id:'P0039', d:'Isolation thermique R10 par soufflage de laine de verre', ht:49.0, u:'m²' },
+  SOUF_OUATE_R7:    { ref:'SOUF-OUATE-R7',      id:'P0052', d:'Isolation thermique R7 par soufflage de ouate de cellulose', ht:65.0, u:'m²' },
+  SOUF_BOIS:        { ref:'SOUF-BOIS',          id:'P0051', d:'Soufflage laine de bois', ht:72.0, u:'m²' },
+  ROULEAU_200:      { ref:'ROULEAU-KIFIT-200',  id:'P0034', d:'KIFIT 032 épaisseur 200 mm', ht:72.0, u:'m²' },
+  ECART_FEU:        { ref:'ECART-FEU',          id:'P0246', d:'Déflecteur / écart au feu', ht:84.0, u:'u' },
+  OSB:              { ref:'PLANCHER-OSB',       id:'P0144', d:'Plancher Agglo OSB3 au sol', ht:85.0, u:'m²' },
+  REHAUSSE:         { ref:'PLANCHER-REHAUSSE',  id:'P0140', d:'Réhaussement de Plancher', ht:95.0, u:'m²' },
+  SOLIVBOX:         { ref:'SOLIVBOX',           id:'P0026', d:'Isolant Solivbox 34', ht:124.0, u:'m²' },
+  DEPOSE_PLANCHER:  { ref:'PLANCHER-DEPOSE',    id:'P0141', d:'Dépose et évacuation plancher existant', ht:29.0, u:'m²' },
+  VMC_REMP_COMPACT_MW:  { ref:'VMC-REMP-COMPACT-MW',  id:'P0252', d:'Remplacement VMC de type hygro A - COMPACT MW', ht:2200.0, u:'forfait' },
+  VMC_REMP_COMPACT_HP:  { ref:'VMC-REMP-COMPACT-HP',  id:'P0254', d:'Remplacement VMC de type hygro A - COMPACT HP+', ht:2700.0, u:'forfait' },
+  VMC_REMP_PREMIUM_MW:  { ref:'VMC-REMP-PREMIUM-MW',  id:'P0247', d:'Remplacement VMC de type hygro A - PREMIUM MW', ht:2000.0, u:'forfait' },
+  VMC_REMP_PREMIUM_HP:  { ref:'VMC-REMP-PREMIUM-HP',  id:'P0257', d:'Remplacement VMC de type hygro A - PREMIUM HP+', ht:2500.0, u:'forfait' },
+  VMC_CREA_COMPACT_MW:  { ref:'VMC-CREA-COMPACT-MW',  id:'P0251', d:'Création VMC de type hygro A - COMPACT MW', ht:2900.0, u:'forfait' },
+  VMC_CREA_COMPACT_HP:  { ref:'VMC-CREA-COMPACT-HP',  id:'P0255', d:'Création VMC de type hygro A - COMPACT HP+', ht:3400.0, u:'forfait' },
+  VMC_CREA_PREMIUM_MW:  { ref:'VMC-CREA-PREMIUM-MW',  id:'P0256', d:'Création VMC de type hygro A - PREMIUM MW', ht:2700.0, u:'forfait' },
+  VMC_CREA_PREMIUM_HP:  { ref:'VMC-CREA-PREMIUM-HP',  id:'P0248', d:'Création VMC de type hygro A - PREMIUM HP+', ht:3200.0, u:'forfait' },
+  ENTREE_AIR:       { ref:'ENTREE-AIR',         id:'P0268', d:'Création d’entrée d’air hygroréglable', ht:150.0, u:'u' },
+  EXTRACTEUR_SOLAIRE:{ ref:'EXTRACTEUR-SOLAIRE',id:'P0253', d:'Extracteur d’air solaire', ht:2500.0, u:'forfait' },
   // Toiture — dépose / charpente
-  DEPOSE_MECA:      { ref:'TOIT-DEPOSE-MECA',   id:'P0114', u:'m²' },
-  DEPOSE_PLATE:     { ref:'TOIT-DEPOSE-PLATE',  id:'P0158', u:'m²' },
-  CHEVRON:          { ref:'TOIT-CHEVRON',       id:'P0129', u:'ml' },
-  DEMI_CHEVRON:     { ref:'TOIT-DEMI-CHEVRON',  id:'P0139', u:'ml' },
-  PANNE:            { ref:'TOIT-PANNE',         id:'P0135', u:'u' },
-  TRAIT_BOIS_PULV:  { ref:'TRAIT-BOIS-PULV',    id:'P0265', u:'m²' },
-  TRAIT_BOIS_INJ:   { ref:'TRAIT-BOIS-INJ',     id:'P0266', u:'m²' },
+  DEPOSE_MECA:      { ref:'TOIT-DEPOSE-MECA',   id:'P0114', d:'Dépose de couverture tuile mécanique', ht:20.0, u:'m²' },
+  DEPOSE_PLATE:     { ref:'TOIT-DEPOSE-PLATE',  id:'P0158', d:'Dépose de couverture tuile plate', ht:25.0, u:'m²' },
+  CHEVRON:          { ref:'TOIT-CHEVRON',       id:'P0129', d:'Chevron pour toiture', ht:39.0, u:'ml' },
+  DEMI_CHEVRON:     { ref:'TOIT-DEMI-CHEVRON',  id:'P0139', d:'Demi-chevron pour toiture', ht:35.0, u:'ml' },
+  PANNE:            { ref:'TOIT-PANNE',         id:'P0135', d:'Remplacement Panne', ht:69.0, u:'u' },
+  TRAIT_BOIS_PULV:  { ref:'TRAIT-BOIS-PULV',    id:'P0265', d:'Traitement Bois - Techniflamme - Pulvérisation', ht:25.0, u:'m²' },
+  TRAIT_BOIS_INJ:   { ref:'TRAIT-BOIS-INJ',     id:'P0266', d:'Traitement Bois - Techniflamme - Injection', ht:35.0, u:'m²' },
   // Toiture — isolation (sarking)
-  SARKING_SEUL:     { ref:'SARKING-NRJ132',            id:'P0157', u:'m²' },
-  SARKING_ROCK75:   { ref:'SARKING-NRJ132-ROCK75',     id:'P0138', u:'m²' },
-  SARKING_ACOU75:   { ref:'SARKING-NRJ132-ACOU75',     id:'P0151', u:'m²' },
-  SARKING_STEICO80: { ref:'SARKING-NRJ132-STEICO80',   id:'P0162', u:'m²' },
-  EFIGREEN:         { ref:'EFIGREEN-ALU',              id:'P0163', u:'m²' },
-  ACTIS:            { ref:'ACTIS-TRISO',               id:'P0038', u:'m²' },
+  SARKING_SEUL:     { ref:'SARKING-NRJ132',            id:'P0157', d:'SARKING TERREAL NRJ+ 132', ht:110.0, u:'m²' },
+  SARKING_ROCK75:   { ref:'SARKING-NRJ132-ROCK75',     id:'P0138', d:'SARKING NRJ+ 132 & ROCKPLUS PREMIUM NU 75', ht:125.0, u:'m²' },
+  SARKING_ACOU75:   { ref:'SARKING-NRJ132-ACOU75',     id:'P0151', d:'SARKING NRJ+ 132 & ACOUSTIPLUS 75', ht:125.0, u:'m²' },
+  SARKING_STEICO80: { ref:'SARKING-NRJ132-STEICO80',   id:'P0162', d:'SARKING NRJ+ 132 & STEICOflex 80', ht:135.0, u:'m²' },
+  EFIGREEN:         { ref:'EFIGREEN-ALU',              id:'P0163', d:'isolant Efigreen Alu +', ht:120.0, u:'m²' },
+  ACTIS:            { ref:'ACTIS-TRISO',               id:'P0038', d:'Isolant mince ACTIS TRISO-SUPER 12 BOOST’R', ht:99.0, u:'m²' },
   // Toiture — couverture
-  HPV:              { ref:'TOIT-HPV',           id:'P0122', u:'m²' },
-  LITEAUX_CONTRE:   { ref:'TOIT-LITEAUX-CL',    id:'P0115', u:'m²' },
-  LITEAUX:          { ref:'TOIT-LITEAUX',       id:'P0134', u:'m²' },
-  TUILE_MECA:       { ref:'TUILE-MECA',         id:'P0116', u:'m²' },
-  TUILE_MECA_PLATE: { ref:'TUILE-MECA-PLATE',   id:'P0174', u:'m²' },
-  TUILE_BETON:      { ref:'TUILE-BETON',        id:'P0136', u:'m²' },
-  TUILE_PAYS:       { ref:'TUILE-PLATE-PAYS',   id:'P0128', u:'m²' },
-  FAITAGE_CLOSOIR:      { ref:'FAITAGE-CLOSOIR',       id:'P0120', u:'ml' },
-  FAITAGE_CLOSOIR_PAYS: { ref:'FAITAGE-CLOSOIR-PAYS',  id:'P0169', u:'ml' },
-  FAITAGE_COQ:      { ref:'FAITAGE-CRETE-COQ',  id:'P0149', u:'ml' },
-  ARETIER_CLOSOIR:      { ref:'ARETIER-CLOSOIR',       id:'P0153', u:'ml' },
-  ARETIER_CLOSOIR_PAYS: { ref:'ARETIER-CLOSOIR-PAYS',  id:'P0168', u:'ml' },
-  ARETIER_COQ:      { ref:'ARETIER-CRETE-COQ',  id:'P0156', u:'ml' },
-  ARETIER_ZINC:     { ref:'ARETIER-ZINC',       id:'P0127', u:'ml' },
-  RIVES_UNIV:       { ref:'RIVES-UNIV',         id:'P0117', u:'ml' },
-  RIVES_UNIV_PAYS:  { ref:'RIVES-UNIV-PAYS',    id:'P0171', u:'ml' },
-  RIVES_INDIV:      { ref:'RIVES-INDIV',        id:'P0165', u:'ml' },
-  RIVES_INDIV_PAYS: { ref:'RIVES-INDIV-PAYS',   id:'P0170', u:'ml' },
-  RIVES_MACON:      { ref:'RIVES-MACONNEE',     id:'P0150', u:'ml' },
-  ABOUT_FAITAGE:    { ref:'ABOUT-FAITAGE',      id:'P0133', u:'u' },
-  ABOUT_RIVE:       { ref:'ABOUT-RIVE',         id:'P0137', u:'u' },
-  NOUE:             { ref:'NOUE-ZINC',          id:'P0125', u:'ml' },
-  SOLIN:            { ref:'SOLIN-ZINC',         id:'P0126', u:'ml' },
-  CHATIERE:         { ref:'TUILE-CHATIERE',     id:'P0118', u:'u' },
-  DOUILLE:          { ref:'TUILE-DOUILLE',      id:'P0119', u:'u' },
-  CHEMINEE_ETANCH:  { ref:'CHEMINEE-ETANCH',    id:'P0130', u:'u' },
-  CHEMINEE_DEPOSE:  { ref:'CHEMINEE-DEPOSE',    id:'P0152', u:'u' },
+  HPV:              { ref:'TOIT-HPV',           id:'P0122', d:'Ecran sous toiture HPV', ht:14.0, u:'m²' },
+  LITEAUX_CONTRE:   { ref:'TOIT-LITEAUX-CL',    id:'P0115', d:'Liteaux et contre liteaux', ht:34.0, u:'m²' },
+  LITEAUX:          { ref:'TOIT-LITEAUX',       id:'P0134', d:'Liteaux', ht:34.0, u:'m²' },
+  TUILE_MECA:       { ref:'TUILE-MECA',         id:'P0116', d:'Tuiles mécaniques classiques', ht:82.0, u:'m²' },
+  TUILE_MECA_PLATE: { ref:'TUILE-MECA-PLATE',   id:'P0174', d:'Tuiles mécaniques plates', ht:89.0, u:'m²' },
+  TUILE_BETON:      { ref:'TUILE-BETON',        id:'P0136', d:'Tuiles mécaniques béton', ht:79.0, u:'m²' },
+  TUILE_PAYS:       { ref:'TUILE-PLATE-PAYS',   id:'P0128', d:'Tuiles plates de pays', ht:124.0, u:'m²' },
+  FAITAGE_CLOSOIR:      { ref:'FAITAGE-CLOSOIR',       id:'P0120', d:'Faîtage en closoir ventilé', ht:194.0, u:'ml' },
+  FAITAGE_CLOSOIR_PAYS: { ref:'FAITAGE-CLOSOIR-PAYS',  id:'P0169', d:'Faîtage en closoir ventilé', ht:269.0, u:'ml' },
+  FAITAGE_COQ:      { ref:'FAITAGE-CRETE-COQ',  id:'P0149', d:'Faîtage en crête de coq', ht:259.0, u:'ml' },
+  ARETIER_CLOSOIR:      { ref:'ARETIER-CLOSOIR',       id:'P0153', d:'Arêtier', ht:194.0, u:'ml' },
+  ARETIER_CLOSOIR_PAYS: { ref:'ARETIER-CLOSOIR-PAYS',  id:'P0168', d:'Arêtier', ht:269.0, u:'ml' },
+  ARETIER_COQ:      { ref:'ARETIER-CRETE-COQ',  id:'P0156', d:'Arêtier en crête de coq', ht:259.0, u:'ml' },
+  ARETIER_ZINC:     { ref:'ARETIER-ZINC',       id:'P0127', d:'Arêtier Zinc', ht:0, u:'ml' },
+  RIVES_UNIV:       { ref:'RIVES-UNIV',         id:'P0117', d:'Rives universelles', ht:174.0, u:'ml' },
+  RIVES_UNIV_PAYS:  { ref:'RIVES-UNIV-PAYS',    id:'P0171', d:'Rives universelles', ht:219.0, u:'ml' },
+  RIVES_INDIV:      { ref:'RIVES-INDIV',        id:'P0165', d:'Rives individuelles', ht:149.0, u:'ml' },
+  RIVES_INDIV_PAYS: { ref:'RIVES-INDIV-PAYS',   id:'P0170', d:'Rives individuelles', ht:219.0, u:'ml' },
+  RIVES_MACON:      { ref:'RIVES-MACONNEE',     id:'P0150', d:'Rives maçonnée', ht:179.0, u:'ml' },
+  ABOUT_FAITAGE:    { ref:'ABOUT-FAITAGE',      id:'P0133', d:'About de faîtage', ht:59.0, u:'u' },
+  ABOUT_RIVE:       { ref:'ABOUT-RIVE',         id:'P0137', d:'About de rives', ht:59.0, u:'u' },
+  NOUE:             { ref:'NOUE-ZINC',          id:'P0125', d:'Noue zinc', ht:249.0, u:'ml' },
+  SOLIN:            { ref:'SOLIN-ZINC',         id:'P0126', d:'Solin Zinc', ht:144.0, u:'ml' },
+  CHATIERE:         { ref:'TUILE-CHATIERE',     id:'P0118', d:'Tuile chatière', ht:39.0, u:'u' },
+  DOUILLE:          { ref:'TUILE-DOUILLE',      id:'P0119', d:'Tuile à douille', ht:179.0, u:'u' },
+  CHEMINEE_ETANCH:  { ref:'CHEMINEE-ETANCH',    id:'P0130', d:'Réfection étanchéité de cheminée', ht:490.0, u:'u' },
+  CHEMINEE_DEPOSE:  { ref:'CHEMINEE-DEPOSE',    id:'P0152', d:'Dépose d\'une cheminée', ht:890.0, u:'u' },
   // Gouttières / zinguerie
-  GOUTT_ZINC_250:   { ref:'GOUTTIERE-ZINC-250', id:'P0154', u:'ml' },
-  GOUTT_ZINC_330:   { ref:'GOUTTIERE-ZINC-330', id:'P0121', u:'ml' },
-  GOUTT_PVC_250:    { ref:'GOUTTIERE-PVC-250',  id:'P0147', u:'ml' },
-  GOUTT_PVC_330:    { ref:'GOUTTIERE-PVC-330',  id:'P0172', u:'ml' },
-  DESC_ZINC_80:     { ref:'DESCENTE-ZINC-80',   id:'P0124', u:'ml' },
-  DESC_ZINC_100:    { ref:'DESCENTE-ZINC-100',  id:'P0155', u:'ml' },
-  DESC_PVC_80:      { ref:'DESCENTE-PVC-80',    id:'P0146', u:'ml' },
-  DESC_PVC_100:     { ref:'DESCENTE-PVC-100',   id:'P0173', u:'ml' },
-  CHENEAU:          { ref:'CHENEAU-ZINC',       id:'P0160', u:'ml' },
-  PLANCHE_RIVE:     { ref:'PLANCHE-RIVE',       id:'P0123', u:'ml' },
-  SOUSFACE_PVC:     { ref:'SOUSFACE-PVC',       id:'P0259', u:'m²' },
-  SOUSFACE_BOIS:    { ref:'SOUSFACE-BOIS',      id:'P0258', u:'m²' },
-  PEINTURE_SOUSFACE:{ ref:'PEINTURE-SOUSFACE',  id:'P0263', u:'ml' },
+  GOUTT_ZINC_250:   { ref:'GOUTTIERE-ZINC-250', id:'P0154', d:'Gouttières en zinc de 250 mm', ht:85.0, u:'ml' },
+  GOUTT_ZINC_330:   { ref:'GOUTTIERE-ZINC-330', id:'P0121', d:'Gouttières en zinc de 330 mm', ht:89.0, u:'ml' },
+  GOUTT_PVC_250:    { ref:'GOUTTIERE-PVC-250',  id:'P0147', d:'Gouttière en PVC 250 mm', ht:49.0, u:'ml' },
+  GOUTT_PVC_330:    { ref:'GOUTTIERE-PVC-330',  id:'P0172', d:'Gouttière en PVC 330 mm', ht:79.0, u:'ml' },
+  DESC_ZINC_80:     { ref:'DESCENTE-ZINC-80',   id:'P0124', d:'Descente de gouttières en Zinc de 80 mm', ht:75.0, u:'ml' },
+  DESC_ZINC_100:    { ref:'DESCENTE-ZINC-100',  id:'P0155', d:'Descente de gouttières en Zinc de 100 mm', ht:79.0, u:'ml' },
+  DESC_PVC_80:      { ref:'DESCENTE-PVC-80',    id:'P0146', d:'Descente de gouttières en PVC 80mm', ht:39.0, u:'ml' },
+  DESC_PVC_100:     { ref:'DESCENTE-PVC-100',   id:'P0173', d:'Descente de gouttières en PVC 100mm', ht:59.0, u:'ml' },
+  CHENEAU:          { ref:'CHENEAU-ZINC',       id:'P0160', d:'Chéneau en zinc', ht:290.0, u:'ml' },
+  PLANCHE_RIVE:     { ref:'PLANCHE-RIVE',       id:'P0123', d:'Planches de rives', ht:39.0, u:'ml' },
+  SOUSFACE_PVC:     { ref:'SOUSFACE-PVC',       id:'P0259', d:'Sous face de toiture PVC', ht:60.0, u:'m²' },
+  SOUSFACE_BOIS:    { ref:'SOUSFACE-BOIS',      id:'P0258', d:'Sous face bois +lasure bois', ht:59.0, u:'m²' },
+  PEINTURE_SOUSFACE:{ ref:'PEINTURE-SOUSFACE',  id:'P0263', d:'Peinture des sous face en bois', ht:49.0, u:'ml' },
   // Traitement de toiture
-  NETTOYAGE:        { ref:'TOIT-NETTOYAGE',     id:'P0111', u:'m²' },
-  HYDRO_INCOLORE:   { ref:'HYDRO-INCOLORE',     id:'P0112', u:'m²' },
-  HYDRO_CLASSIQUE:  { ref:'HYDRO-COLORE',       id:'P0113', u:'m²' },
-  HYDRO_PREMIUM:    { ref:'HYDRO-PREMIUM',      id:'P0175', u:'m²' },
-  HYDRO_REFLECHISSANT:{ ref:'HYDRO-REFLECHISSANT', id:'P0161', u:'m²' },
+  NETTOYAGE:        { ref:'TOIT-NETTOYAGE',     id:'P0111', d:'Traitement des tuiles', ht:20.0, u:'m²' },
+  HYDRO_INCOLORE:   { ref:'HYDRO-INCOLORE',     id:'P0112', d:'Hydrofuge incolore', ht:25.0, u:'m²' },
+  HYDRO_CLASSIQUE:  { ref:'HYDRO-COLORE',       id:'P0113', d:'Hydrofuge coloré - classique', ht:30.0, u:'m²' },
+  HYDRO_PREMIUM:    { ref:'HYDRO-PREMIUM',      id:'P0175', d:'Hydrofuge coloré - premium', ht:35.0, u:'m²' },
+  HYDRO_REFLECHISSANT:{ ref:'HYDRO-REFLECHISSANT', id:'P0161', d:'Hydrofuge coloré - réfléchissant', ht:45.0, u:'m²' },
 };
 
 const MODES = {
@@ -369,16 +377,20 @@ export function mountWizardToiture(container, opts) {
     {id:'gainesMl', type:'number', only:C, key:'gainesMl', unit:'ml', q:"Combien de mètres de gaine ?", skip:q=>q.gaines!==1},
 
     // — VMC (configurateur dédié)
-    {id:'vmc', type:'choice', only:V, key:'vmc', eyebrow:'VMC', q:"Remplacement ou création de VMC ?", options:[["Remplacement d'une VMC existante","remp"],["Création d'une VMC (pas de VMC aujourd'hui)","crea"]]},
-    {id:'vmcGamme', type:'choice', only:V, key:'vmcGamme', eyebrow:'VMC', q:"Quelle gamme de VMC ?", sub:'{{vmcSub}}',
+    {id:'systeme', type:'choice', only:V, key:'systeme', eyebrow:'Ventilation', q:"VMC ou VMR ?",
+      options:[["🌀 VMC — ventilation mécanique contrôlée (un caisson central)","vmc"],["🔀 VMR — ventilation mécanique répartie (extracteurs d'air pièce par pièce)","vmr"]]},
+    {id:'vmc', type:'choice', only:V, key:'vmc', eyebrow:'VMC', q:"Remplacement ou création de VMC ?", skip:q=>q.systeme!=='vmc',
+      options:[["Remplacement d'une VMC existante","remp"],["Création d'une VMC (pas de VMC aujourd'hui)","crea"]]},
+    {id:'vmcHygro', type:'choice', only:V, key:'vmcHygro', eyebrow:'VMC', q:"Hygro A ou hygro B ?", skip:q=>q.systeme!=='vmc',
+      sub:"Hygro A : pas d'entrée d'air à poser · Hygro B : entrées d'air hygroréglables obligatoires.",
+      options:[["Hygro A","A"],["Hygro B","B"]]},
+    {id:'vmcGamme', type:'choice', only:V, key:'vmcGamme', eyebrow:'VMC', q:"Quelle gamme de VMC ?", sub:'{{vmcSub}}', skip:q=>q.systeme!=='vmc',
       options:[["Compact MW","COMPACT_MW"],["Compact HP+","COMPACT_HP"],["Premium MW","PREMIUM_MW"],["Premium HP+","PREMIUM_HP"]]},
-    {id:'carottage', type:'number', only:V, key:'carottageNb', unit:'u', eyebrow:'VMC', q:"Combien de carottages dans une dalle béton ?", sub:"Passage de gaine à travers une dalle. 0 si aucun.", skip:q=>q.vmc!=='crea'},
-    {id:'douilleVmc', type:'toggle', only:V, key:'douilleVmc', eyebrow:'VMC', q:"Faut-il une sortie en toiture (tuile à douille) ?", skip:q=>q.vmc!=='crea'},
-    {id:'gainesV', type:'toggle', only:V, key:'gaines', eyebrow:'VMC', q:"Faut-il changer / poser des gaines ?"},
-    {id:'gainesMlV', type:'number', only:V, key:'gainesMl', unit:'ml', q:"Combien de mètres de gaine ?", skip:q=>q.gaines!==1},
-    {id:'entreesAir', type:'number', only:V, key:'entreesAir', unit:'u', eyebrow:'VMC', q:"Combien d'entrées d'air hygroréglables à créer ?", sub:"Sur les menuiseries des pièces principales (séjour, chambres). 0 si aucune."},
-    {id:'extracteur', type:'number', only:V, key:'extracteurNb', unit:'u', eyebrow:'VMC', q:"Combien d'extracteurs d'air (pièce non raccordable à la VMC) ?", sub:"0 si aucun."},
-    {id:'extracteurSolaire', type:'toggle', only:V, key:'extracteurSolaire', eyebrow:'Combles', q:"Extracteur d'air solaire pour ventiler les combles ?"},
+    {id:'carottage', type:'number', only:V, key:'carottageNb', unit:'u', eyebrow:'VMC', q:"Combien de carottages dans une dalle béton ?", sub:"Passage de gaine à travers une dalle. 0 si aucun.", skip:q=>q.systeme!=='vmc'||q.vmc!=='crea'},
+    {id:'douilleVmc', type:'toggle', only:V, key:'douilleVmc', eyebrow:'VMC', q:"Faut-il une sortie en toiture (tuile à douille) ?", skip:q=>q.systeme!=='vmc'||q.vmc!=='crea'},
+    {id:'entreesAir', type:'number', only:V, key:'entreesAir', unit:'u', eyebrow:'VMC hygro B', q:"Combien d'entrées d'air hygroréglables ?", sub:"Obligatoire en hygro B : une par pièce principale (séjour, chambres).", skip:q=>q.systeme!=='vmc'||q.vmcHygro!=='B'},
+    {id:'vmrNb', type:'number', only:V, key:'vmrNb', unit:'u', eyebrow:'VMR', q:"Combien d'extracteurs d'air (un par pièce humide) ?", sub:"Cuisine, salle de bain, WC…", skip:q=>q.systeme!=='vmr'},
+    {id:'extracteurSolaire', type:'toggle', only:V, key:'extracteurSolaire', eyebrow:'Option', q:"En option : extracteur d'air solaire pour ventiler les combles ?"},
 
     // — TOITURE : pans
     {id:'pans', type:'pans', only:T},
@@ -717,7 +729,16 @@ export function mountWizardToiture(container, opts) {
   // ─────────────────────────────────────────────────────────
   function findProd(def){
     if(!def) return null;
-    return catalogue.find(p=>p && p.ref===def.ref) || catalogue.find(p=>p && p.id===def.id) || null;
+    const norm = (t)=> String(t||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();
+    const refs = [def.ref, ...(def.alt||[])].map(r=>String(r).toUpperCase());
+    let p = catalogue.find(x=>x && x.ref && refs.includes(String(x.ref).trim().toUpperCase()));
+    if(!p && def.id) p = catalogue.find(x=>x && x.id===def.id && (!def.d || norm(x.designation)===norm(def.d)));
+    if(!p && def.d){
+      const same = catalogue.filter(x=>x && norm(x.designation)===norm(def.d));
+      p = same.find(x=>Number(x.prixHT)===Number(def.ht)) || same[0];
+    }
+    if(!p && def.id) p = catalogue.find(x=>x && x.id===def.id);
+    return p || null;
   }
 
   function buildDevisLignes(){
@@ -757,12 +778,13 @@ export function mountWizardToiture(container, opts) {
       if(q.gaines===1) add('VMC_GAINES', numF(q.gainesMl));
     } else if(state.mode==='VMC'){
       add(q.acces==='exterieur' ? 'ACCES_TOITURE' : 'MISE_EN_PLACE', 1);
-      if(q.vmc && q.vmcGamme) add('VMC_'+(q.vmc==='remp'?'REMP':'CREA')+'_'+q.vmcGamme, 1);
-      if(q.vmc==='crea') add('CARROTTAGE', numF(q.carottageNb));
-      if(q.vmc==='crea' && q.douilleVmc===1) add('DOUILLE', 1);
-      if(q.gaines===1) add('VMC_GAINES', numF(q.gainesMl));
-      add('ENTREE_AIR', numF(q.entreesAir));
-      add('EXTRACTEUR', numF(q.extracteurNb));
+      if(q.systeme==='vmc'){
+        if(q.vmc && q.vmcGamme) add('VMC_'+(q.vmc==='remp'?'REMP':'CREA')+'_'+q.vmcGamme+(q.vmcHygro==='B'?'_B':''), 1);
+        if(q.vmc==='crea') add('CARROTTAGE', numF(q.carottageNb));
+        if(q.vmc==='crea' && q.douilleVmc===1) add('DOUILLE', 1);
+        if(q.vmcHygro==='B') add('ENTREE_AIR', numF(q.entreesAir));
+      }
+      if(q.systeme==='vmr') add('EXTRACTEUR', numF(q.vmrNb));
       if(q.extracteurSolaire===1) add('EXTRACTEUR_SOLAIRE', 1);
     } else {
       const m2 = totalPans();
