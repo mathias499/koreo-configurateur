@@ -137,6 +137,9 @@ function ProjectSelect({ client, onBack, onSelect }) {
       <button onClick={() => onSelect("TOITURE")} style={styles.projectBtn}>
         🏚️ Toiture (changement, avec isolation, traitement)
       </button>
+      <button onClick={() => onSelect("VMC")} style={styles.projectBtn}>
+        🌀 Ventilation (VMC)
+      </button>
     </div>
   );
 }

@@ -111,6 +111,12 @@ const P = {
   CACHE_SPOT:       { ref:'CACHE-SPOT',         id:'P0011', u:'u' },
   MONTE_CHARGE:     { ref:'MONTE-CHARGE',       id:'P0132', u:'forfait' },
   ACCES_TOITURE:    { ref:'ACCES-TOITURE',      id:'P0131', u:'forfait' },
+  MISE_EN_PLACE:    { ref:'MISE-EN-PLACE-CHANTIER', id:'P0010', u:'forfait' },
+  CARROTTAGE:       { ref:'CARROTTAGE-DALLE',   id:'P0005', u:'u' },
+  EXTRACTEUR:       { ref:'EXTRACTEUR-AIR',     id:'P0250', u:'u' },
+  // Produits pas encore au catalogue (pending) : ne bloquent pas le devis, signalés dans le récap
+  CONTOUR_TRAPPE:   { ref:'CONTOUR-TRAPPE',     id:null, u:'u',  pending:true, label:'Contour de trappe' },
+  VMC_GAINES:       { ref:'VMC-GAINES',         id:null, u:'ml', pending:true, label:'Gaines de VMC' },
   // Combles perdus
   DEBARRAS_MONO:    { ref:'COMBLES-DEBARRAS-MONO',   id:'P0017', u:'m²' },
   DEBARRAS_DOUBLE:  { ref:'COMBLES-DEBARRAS-DOUBLE', id:'P0007', u:'m²' },
@@ -143,7 +149,8 @@ const P = {
   CHEVRON:          { ref:'TOIT-CHEVRON',       id:'P0129', u:'ml' },
   DEMI_CHEVRON:     { ref:'TOIT-DEMI-CHEVRON',  id:'P0139', u:'ml' },
   PANNE:            { ref:'TOIT-PANNE',         id:'P0135', u:'u' },
-  TRAIT_CHARPENTE:  { ref:'TRAIT-BOIS-PULV',    id:'P0265', u:'m²' },
+  TRAIT_BOIS_PULV:  { ref:'TRAIT-BOIS-PULV',    id:'P0265', u:'m²' },
+  TRAIT_BOIS_INJ:   { ref:'TRAIT-BOIS-INJ',     id:'P0266', u:'m²' },
   // Toiture — isolation (sarking)
   SARKING_SEUL:     { ref:'SARKING-NRJ132',            id:'P0157', u:'m²' },
   SARKING_ROCK75:   { ref:'SARKING-NRJ132-ROCK75',     id:'P0138', u:'m²' },
@@ -206,6 +213,7 @@ const MODES = {
   CHANGEMENT:     { label:'Changement de toiture',                section:'Changement de toiture' },
   CHANGEMENT_ISOL:{ label:'Changement de toiture avec isolation', section:'Changement de toiture avec isolation' },
   TRAITEMENT:     { label:'Traitement de toiture',                section:'Traitement de toiture' },
+  VMC:            { label:'Ventilation (VMC)',                    section:'VMC & ventilation' },
 };
 
 const ISOLANTS_COMBLES = [
@@ -263,8 +271,8 @@ export function mountWizardToiture(container, opts) {
   const { catalogue, client, baremesCEE, onGenerate, onExit, mode: modeInit } = opts;
 
   const state = {
-    famille: modeInit==='COMBLES' ? 'COMBLES' : 'TOITURE',
-    mode: modeInit==='COMBLES' ? 'COMBLES' : null,   // COMBLES | CHANGEMENT | CHANGEMENT_ISOL | TRAITEMENT
+    famille: (modeInit==='COMBLES'||modeInit==='VMC') ? modeInit : 'TOITURE',
+    mode: (modeInit==='COMBLES'||modeInit==='VMC') ? modeInit : null,   // COMBLES | CHANGEMENT | CHANGEMENT_ISOL | TRAITEMENT
     zones: [],   // combles : [{id, nom, longueur, largeur}]
     pans: [],    // toiture : [{id, nom, forme, base, baseHaute, rampant}]
     lin: { faitage:'', aretiers:'', noues:'', rives:'', egout:'' },
@@ -326,7 +334,7 @@ export function mountWizardToiture(container, opts) {
   // Liste des écrans (même principe que les QUESTIONS de l'ITE)
   // only: modes concernés · skip: condition pour sauter
   // ─────────────────────────────────────────────────────────
-  const C = ['COMBLES'], T = ['CHANGEMENT','CHANGEMENT_ISOL','TRAITEMENT'], CH = ['CHANGEMENT','CHANGEMENT_ISOL'], CHI = ['CHANGEMENT_ISOL'], TR = ['TRAITEMENT'];
+  const C = ['COMBLES'], V = ['VMC'], CV = ['COMBLES','VMC'], T = ['CHANGEMENT','CHANGEMENT_ISOL','TRAITEMENT'], CH = ['CHANGEMENT','CHANGEMENT_ISOL'], CHI = ['CHANGEMENT_ISOL'], TR = ['TRAITEMENT'];
   const SCREENS = [
     // — Toiture : type de travaux
     {id:'mode', type:'custom', only:null, skip:()=> state.famille!=='TOITURE'},
@@ -336,9 +344,10 @@ export function mountWizardToiture(container, opts) {
 
     // — COMBLES : zones
     {id:'zones', type:'zones', only:C},
-    {id:'acces', type:'choice', only:C, key:'acces', eyebrow:'Accès',
-      q:"Comment accède-t-on aux combles ?", options:[["Trappe intérieure","trappe"],["Pas de trappe → accès par la toiture (détuilage)","toiture"]],
-      sub:"Accès par la toiture → ligne « Accès toiture » au forfait."},
+    {id:'acces', type:'choice', only:CV, key:'acces', eyebrow:'Accès',
+      q:"Accès aux combles pour le chantier : intérieur ou extérieur ?", options:[["🏠 Accès intérieur → Mise en place chantier","interieur"],["🪜 Accès extérieur → Accès par la toiture","exterieur"]],
+      sub:"Une seule ligne au devis : soit « Mise en place chantier », soit « Accès toiture »."},
+    {id:'trappe', type:'toggle', only:C, key:'trappe', eyebrow:'Accès', q:"Y a-t-il une trappe d'accès aux combles ?", sub:"Oui → « Contour de trappe » ajouté au devis."},
     {id:'existant', type:'choice', only:C, key:'existant', eyebrow:'Existant',
       q:"Y a-t-il un ancien isolant à retirer ?", options:[["Non — on souffle par-dessus / rien à retirer","aucun"],["Oui — une couche (mono-couche)","mono"],["Oui — deux couches (double couche)","double"]]},
     {id:'grenier', type:'toggle', only:C, key:'grenier', eyebrow:'Préparation', q:"Le grenier est-il encombré (affaires du client à déplacer) ?", sub:"Oui → « Forfait grenier encombré »."},
@@ -352,10 +361,24 @@ export function mountWizardToiture(container, opts) {
       options:[["Non — combles 100 % isolés","aucun"],["Oui — réhausse de plancher","rehausse"],["Oui — plancher OSB seul","osb"],["Oui — Solivbox (isolant porteur)","solivbox"]]},
     {id:'plancherDepose', type:'toggle', only:C, key:'plancherDepose', q:"Faut-il déposer un ancien plancher ?", skip:q=>!q.plancher||q.plancher==='aucun'},
     {id:'plancherM2', type:'number', only:C, key:'plancherM2', unit:'m²', q:"Surface de la zone de rangement ?", skip:q=>!q.plancher||q.plancher==='aucun', sub:'{{plancherSub}}'},
-    {id:'vmc', type:'choice', only:C, key:'vmc', eyebrow:'Ventilation', q:"VMC : quelque chose à prévoir ?", options:[["Rien","aucune"],["Remplacement de la VMC existante","remp"],["Création d'une VMC","crea"]]},
-    {id:'vmcGamme', type:'choice', only:C, key:'vmcGamme', q:"Quelle gamme de VMC ?", skip:q=>!q.vmc||q.vmc==='aucune',
+    {id:'traitBois', type:'toggle', only:C, key:'traitBois', eyebrow:'Charpente', q:"Faut-il prévoir un traitement de bois ?"},
+    {id:'traitBoisType', type:'choice', only:C, key:'traitBoisType', q:"Quel traitement de bois ?", skip:q=>q.traitBois!==1,
+      options:[["Pulvérisation","pulv"],["Injection + pulvérisation","inj"]]},
+    {id:'traitBoisM2', type:'number', only:C, key:'traitBoisM2', unit:'m²', q:"Combien de m² de bois à traiter ?", skip:q=>q.traitBois!==1, def:()=> r1(totalZones()).replace(/\s/g,''), sub:'Surface des combles : {{surfaceZones}} m²'},
+    {id:'gaines', type:'toggle', only:C, key:'gaines', eyebrow:'VMC', q:"Faut-il changer les gaines de la VMC ?"},
+    {id:'gainesMl', type:'number', only:C, key:'gainesMl', unit:'ml', q:"Combien de mètres de gaine ?", skip:q=>q.gaines!==1},
+
+    // — VMC (configurateur dédié)
+    {id:'vmc', type:'choice', only:V, key:'vmc', eyebrow:'VMC', q:"Remplacement ou création de VMC ?", options:[["Remplacement d'une VMC existante","remp"],["Création d'une VMC (pas de VMC aujourd'hui)","crea"]]},
+    {id:'vmcGamme', type:'choice', only:V, key:'vmcGamme', eyebrow:'VMC', q:"Quelle gamme de VMC ?", sub:'{{vmcSub}}',
       options:[["Compact MW","COMPACT_MW"],["Compact HP+","COMPACT_HP"],["Premium MW","PREMIUM_MW"],["Premium HP+","PREMIUM_HP"]]},
-    {id:'entreesAir', type:'number', only:C, key:'entreesAir', unit:'u', q:"Combien d'entrées d'air hygroréglables à créer ?", sub:"0 si aucune. Sur menuiseries des pièces principales.", skip:q=>!q.vmc||q.vmc==='aucune'},
+    {id:'carottage', type:'number', only:V, key:'carottageNb', unit:'u', eyebrow:'VMC', q:"Combien de carottages dans une dalle béton ?", sub:"Passage de gaine à travers une dalle. 0 si aucun.", skip:q=>q.vmc!=='crea'},
+    {id:'douilleVmc', type:'toggle', only:V, key:'douilleVmc', eyebrow:'VMC', q:"Faut-il une sortie en toiture (tuile à douille) ?", skip:q=>q.vmc!=='crea'},
+    {id:'gainesV', type:'toggle', only:V, key:'gaines', eyebrow:'VMC', q:"Faut-il changer / poser des gaines ?"},
+    {id:'gainesMlV', type:'number', only:V, key:'gainesMl', unit:'ml', q:"Combien de mètres de gaine ?", skip:q=>q.gaines!==1},
+    {id:'entreesAir', type:'number', only:V, key:'entreesAir', unit:'u', eyebrow:'VMC', q:"Combien d'entrées d'air hygroréglables à créer ?", sub:"Sur les menuiseries des pièces principales (séjour, chambres). 0 si aucune."},
+    {id:'extracteur', type:'number', only:V, key:'extracteurNb', unit:'u', eyebrow:'VMC', q:"Combien d'extracteurs d'air (pièce non raccordable à la VMC) ?", sub:"0 si aucun."},
+    {id:'extracteurSolaire', type:'toggle', only:V, key:'extracteurSolaire', eyebrow:'Combles', q:"Extracteur d'air solaire pour ventiler les combles ?"},
 
     // — TOITURE : pans
     {id:'pans', type:'pans', only:T},
@@ -370,7 +393,10 @@ export function mountWizardToiture(container, opts) {
     {id:'chevrons', type:'number', only:CH, key:'chevronsMl', unit:'ml', eyebrow:'Charpente', q:"Chevrons à remplacer (ml) ?", sub:"0 si la charpente est saine."},
     {id:'demiChevrons', type:'number', only:CH, key:'demiChevronsMl', unit:'ml', eyebrow:'Charpente', q:"Demi-chevrons à poser (ml) ?", sub:"0 si aucun."},
     {id:'pannes', type:'number', only:CH, key:'pannesNb', unit:'u', eyebrow:'Charpente', q:"Pannes à remplacer (nombre) ?", sub:"0 si aucune."},
-    {id:'traitCharpente', type:'toggle', only:CH, key:'traitCharpente', eyebrow:'Charpente', q:"Traitement de la charpente (insecticide / fongicide) ?", sub:'Calculé sur la surface des pans : {{surfacePans}} m²'},
+    {id:'traitCharpente', type:'toggle', only:CH, key:'traitCharpente', eyebrow:'Charpente', q:"Faut-il prévoir un traitement de bois (charpente) ?"},
+    {id:'traitCharpenteType', type:'choice', only:CH, key:'traitCharpenteType', q:"Quel traitement de bois ?", skip:q=>q.traitCharpente!==1,
+      options:[["Pulvérisation","pulv"],["Injection + pulvérisation","inj"]]},
+    {id:'traitCharpenteM2', type:'number', only:CH, key:'traitCharpenteM2', unit:'m²', q:"Combien de m² de bois à traiter ?", skip:q=>q.traitCharpente!==1, def:()=> r1(totalPans()).replace(/\s/g,''), sub:'Surface des pans : {{surfacePans}} m²'},
     {id:'sarking', type:'sarking', only:CHI},
     {id:'hpv', type:'toggle', only:CH, key:'hpv', eyebrow:'Couverture', q:"Pose d'un écran sous-toiture HPV ?", sub:'{{surfacePans}} m²'},
     {id:'liteaux', type:'choice', only:CH, key:'liteaux', eyebrow:'Couverture', q:"Liteaux ?", options:[["Liteaux + contre-liteaux","lcl"],["Liteaux seuls","l"]]},
@@ -451,7 +477,7 @@ export function mountWizardToiture(container, opts) {
     const app = $('#app');
     const vis = visibleScreens();
     const pos = Math.max(0, vis.findIndex(s=>s.id===cur));
-    const titre = state.famille==='COMBLES' ? 'DÉCOUVERTE COMBLES' : 'DÉCOUVERTE TOITURE';
+    const titre = state.famille==='COMBLES' ? 'DÉCOUVERTE COMBLES' : state.famille==='VMC' ? 'DÉCOUVERTE VMC' : 'DÉCOUVERTE TOITURE';
     $('#headLabel').innerHTML = titre+' — <b>'+esc((client.nom||'')+' '+(client.prenom||''))+'</b> · '+(pos+1)+'/'+vis.length;
     $('#backBtn').classList.toggle('show', hist.length>0 || ((cur==='zones'||cur==='pans') && loopSub && loopSub!=='nom'));
     const s = SCREENS.find(x=>x.id===cur);
@@ -472,6 +498,8 @@ export function mountWizardToiture(container, opts) {
     const sugg = suggestionsLineaires();
     const map = {
       '{{surfacePans}}': r1(sp),
+      '{{surfaceZones}}': r1(totalZones()),
+      '{{vmcSub}}': ['COMPACT_MW','COMPACT_HP','PREMIUM_MW','PREMIUM_HP'].map(g=>{ const pr=findProd(P['VMC_'+(state.q.vmc==='crea'?'CREA':'REMP')+'_'+g]); return pr? g.replace('_',' ').replace('HP','HP+')+' : '+(Number(pr.prixHT)||0).toLocaleString('fr-FR')+' €' : ''; }).filter(Boolean).join(' · '),
       '{{plancherSub}}': 'Surface totale des combles : '+r1(totalZones())+' m². Le soufflage sera fait sur toute la surface ; le plancher seulement sur cette zone.',
       '{{faitageSub}}': numF(state.lin.faitage)+' ml de faîtage'+(tuileDePays()?' · tarif tuile plate de pays appliqué':''),
       '{{aretierSub}}': numF(state.lin.aretiers)+' ml d\'arêtiers'+(tuileDePays()?' · tarif tuile plate de pays appliqué':''),
@@ -693,14 +721,17 @@ export function mountWizardToiture(container, opts) {
   }
 
   function buildDevisLignes(){
-    const lignes = [], missing = [];
+    const lignes = [], missing = [], pending = [];
     const q = state.q;
     function add(key, quantite, complement){
       const def = P[key];
       quantite = Math.round((Number(quantite)||0)*100)/100;
       if(!def || quantite<=0) return;
       const prod = findProd(def);
-      if(!prod){ const lbl = def.ref+' ('+def.id+')'; if(!missing.includes(lbl)) missing.push(lbl); return; }
+      if(!prod){
+        if(def.pending){ pending.push({ ref:def.ref, label:def.label, quantite, unite:def.u }); return; }
+        const lbl = def.ref+' ('+def.id+')'; if(!missing.includes(lbl)) missing.push(lbl); return;
+      }
       lignes.push({
         id: uid(), produitId: prod.id, designation: prod.designation + (complement?' — '+complement:''), description: prod.description||'',
         unite: prod.unite||def.u||'unité', tva: prod.tva||10, prixTTC: Number(prod.prixHT)||0, quantite,
@@ -709,8 +740,8 @@ export function mountWizardToiture(container, opts) {
 
     if(state.mode==='COMBLES'){
       const m2 = totalZones();
-      add('PROTECTION', 1);
-      if(q.acces==='toiture') add('ACCES_TOITURE', 1);
+      add(q.acces==='exterieur' ? 'ACCES_TOITURE' : 'MISE_EN_PLACE', 1);
+      if(q.trappe===1) add('CONTOUR_TRAPPE', 1);
       if(q.grenier===1) add('GRENIER', 1);
       if(q.existant==='mono') add('DEBARRAS_MONO', m2);
       if(q.existant==='double') add('DEBARRAS_DOUBLE', m2);
@@ -722,8 +753,17 @@ export function mountWizardToiture(container, opts) {
       if(q.plancher==='rehausse') add('REHAUSSE', numF(q.plancherM2));
       if(q.plancher==='osb') add('OSB', numF(q.plancherM2));
       if(q.plancher==='solivbox') add('SOLIVBOX', numF(q.plancherM2));
-      if(q.vmc && q.vmc!=='aucune' && q.vmcGamme) add('VMC_'+(q.vmc==='remp'?'REMP':'CREA')+'_'+q.vmcGamme, 1);
-      if(q.vmc && q.vmc!=='aucune') add('ENTREE_AIR', numF(q.entreesAir));
+      if(q.traitBois===1) add(q.traitBoisType==='inj' ? 'TRAIT_BOIS_INJ' : 'TRAIT_BOIS_PULV', numF(q.traitBoisM2));
+      if(q.gaines===1) add('VMC_GAINES', numF(q.gainesMl));
+    } else if(state.mode==='VMC'){
+      add(q.acces==='exterieur' ? 'ACCES_TOITURE' : 'MISE_EN_PLACE', 1);
+      if(q.vmc && q.vmcGamme) add('VMC_'+(q.vmc==='remp'?'REMP':'CREA')+'_'+q.vmcGamme, 1);
+      if(q.vmc==='crea') add('CARROTTAGE', numF(q.carottageNb));
+      if(q.vmc==='crea' && q.douilleVmc===1) add('DOUILLE', 1);
+      if(q.gaines===1) add('VMC_GAINES', numF(q.gainesMl));
+      add('ENTREE_AIR', numF(q.entreesAir));
+      add('EXTRACTEUR', numF(q.extracteurNb));
+      if(q.extracteurSolaire===1) add('EXTRACTEUR_SOLAIRE', 1);
     } else {
       const m2 = totalPans();
       const pays = tuileDePays();
@@ -741,7 +781,7 @@ export function mountWizardToiture(container, opts) {
         add('CHEVRON', numF(q.chevronsMl));
         add('DEMI_CHEVRON', numF(q.demiChevronsMl));
         add('PANNE', numF(q.pannesNb));
-        if(q.traitCharpente===1) add('TRAIT_CHARPENTE', m2);
+        if(q.traitCharpente===1) add(q.traitCharpenteType==='inj' ? 'TRAIT_BOIS_INJ' : 'TRAIT_BOIS_PULV', numF(q.traitCharpenteM2));
         if(state.mode==='CHANGEMENT_ISOL'){ const s = SARKINGS.find(x=>x.k===q.sarking); if(s) add(s.p, m2); }
         if(q.hpv===1) add('HPV', m2);
         add(q.liteaux==='l' ? 'LITEAUX' : 'LITEAUX_CONTRE', m2);
@@ -773,7 +813,7 @@ export function mountWizardToiture(container, opts) {
       if(q.sousFace==='bois') add('SOUSFACE_BOIS', numF(q.sousFaceQte));
       if(q.sousFace==='peinture') add('PEINTURE_SOUSFACE', numF(q.sousFaceQte));
     }
-    return { lignes, missing };
+    return { lignes, missing, pending };
   }
 
   // ─────────────────────────────────────────────────────────
@@ -782,10 +822,10 @@ export function mountWizardToiture(container, opts) {
   let genStatus='idle', genMissing=[], genError='', genNumero='', genLignes=[], genDevis=null, genClient=null;
 
   function renderRecap(app){
-    const { lignes, missing } = buildDevisLignes();
+    const { lignes, missing, pending } = buildDevisLignes();
     const total = lignes.reduce((s,l)=> s + l.prixTTC*l.quantite, 0);
     const cee = calcMontantCEE();
-    const mesures = state.mode==='COMBLES'
+    const mesures = state.mode==='VMC' ? '' : state.mode==='COMBLES'
       ? state.zones.map(z=>`<div class="recap-line"><span>${esc(z.nom||'Zone')} — ${esc(z.longueur)} × ${esc(z.largeur)} m</span><span class="mono">${r1(numF(z.longueur)*numF(z.largeur))} m²</span></div>`).join('') +
         `<div class="recap-line" style="font-weight:700;"><span>Surface totale combles</span><span class="mono">${r1(totalZones())} m²</span></div>`
       : state.pans.map(p=>`<div class="recap-line"><span>${esc(p.nom||'Pan')} (${FORME_LBL[p.forme]||p.forme})</span><span class="mono">${r1(surfacePan(p))} m²</span></div>`).join('') +
@@ -794,13 +834,14 @@ export function mountWizardToiture(container, opts) {
     app.innerHTML = `
       <div class="eyebrow">Récapitulatif</div>
       <div class="qtitle">${esc(MODES[state.mode].label)}</div>
-      <div class="recap-group"><h4>Mesures</h4>${mesures}</div>
+      ${mesures ? `<div class="recap-group"><h4>Mesures</h4>${mesures}</div>` : ''}
       <div class="recap-group"><h4>Lignes du devis</h4>
         ${lignes.map(l=>`<div class="recap-line"><span>${esc(l.designation)}</span><span class="mono">${l.quantite.toLocaleString('fr-FR')} ${esc(l.unite)} · ${eur(l.prixTTC*l.quantite)}</span></div>`).join('')}
         <div class="recap-total"><span>Total</span><span>${eur(total)}</span></div>
         ${cee>0 ? `<div class="recap-line" style="color:var(--ok); font-weight:700;"><span>Prime CEE (${state.q.ceePrecaire==='precaire'?'précaire':'classique'})</span><span class="mono">− ${eur(cee)}</span></div>` : ''}
         ${state.q.ceeApplicable===1 && cee===0 && state.q.renovationGlobale!==1 ? `<div class="warnline">⚠️ CEE demandées mais montant à 0 € : isolant sous le R minimum, ou barème CEE non renseigné dans le CRM (Admin → Réglages → Barèmes CEE).</div>` : ''}
       </div>
+      ${pending.length ? `<div class="warnline">⚠️ Pas encore au catalogue, donc <b>pas sur le devis</b> : ${pending.map(x=>esc(x.label)+' ('+x.quantite.toLocaleString('fr-FR')+' '+x.unite+')').join(' · ')}.<br/>Ajoute-les dans Admin → Catalogue avec la référence <span class="mono">${pending.map(x=>x.ref).join(', ')}</span> et ils seront pris automatiquement.</div>` : ''}
       ${missing.length ? `<div class="warnline">❌ ${missing.length} produit(s) introuvable(s) dans le catalogue : <span class="mono">${esc(missing.join(', '))}</span></div>` : ''}
       <div id="genZone"></div>
       ${backRow()}`;
