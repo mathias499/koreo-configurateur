@@ -349,7 +349,7 @@ export function mountWizardToiture(container, opts) {
     {id:'conduitNb', type:'number', only:C, key:'conduitNb', unit:'u', q:"Combien de conduits ?", skip:q=>q.conduit!==1},
     {id:'plancher', type:'choice', only:C, key:'plancher', eyebrow:'Stockage',
       q:"Le client veut-il garder un espace de rangement dans les combles ?",
-      options:[["Non — combles 100 % isolés","aucun"],["Oui — réhausse + plancher OSB","rehausse"],["Oui — plancher OSB seul","osb"],["Oui — Solivbox (isolant porteur)","solivbox"]]},
+      options:[["Non — combles 100 % isolés","aucun"],["Oui — réhausse de plancher","rehausse"],["Oui — plancher OSB seul","osb"],["Oui — Solivbox (isolant porteur)","solivbox"]]},
     {id:'plancherDepose', type:'toggle', only:C, key:'plancherDepose', q:"Faut-il déposer un ancien plancher ?", skip:q=>!q.plancher||q.plancher==='aucun'},
     {id:'plancherM2', type:'number', only:C, key:'plancherM2', unit:'m²', q:"Surface de la zone de rangement ?", skip:q=>!q.plancher||q.plancher==='aucun', sub:'{{plancherSub}}'},
     {id:'vmc', type:'choice', only:C, key:'vmc', eyebrow:'Ventilation', q:"VMC : quelque chose à prévoir ?", options:[["Rien","aucune"],["Remplacement de la VMC existante","remp"],["Création d'une VMC","crea"]]},
@@ -719,7 +719,7 @@ export function mountWizardToiture(container, opts) {
       if(iso) add(iso.p, m2);
       if(q.spots===1) add('CACHE_SPOT', numF(q.spotsNb));
       if(q.conduit===1) add('ECART_FEU', numF(q.conduitNb));
-      if(q.plancher==='rehausse'){ add('REHAUSSE', numF(q.plancherM2)); add('OSB', numF(q.plancherM2)); }
+      if(q.plancher==='rehausse') add('REHAUSSE', numF(q.plancherM2));
       if(q.plancher==='osb') add('OSB', numF(q.plancherM2));
       if(q.plancher==='solivbox') add('SOLIVBOX', numF(q.plancherM2));
       if(q.vmc && q.vmc!=='aucune' && q.vmcGamme) add('VMC_'+(q.vmc==='remp'?'REMP':'CREA')+'_'+q.vmcGamme, 1);
